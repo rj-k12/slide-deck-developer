@@ -186,6 +186,12 @@ async function generate() {
     if (data.ok) {
       result.style.display = 'block';
       result.innerHTML = `<a href="/download/${data.filename}">Download ${data.filename}</a>`;
+      if (data.extracted_json) {
+        result.innerHTML += ` &nbsp; <a href="/download/${data.extracted_json}" style="background:var(--navy);">See what Claude extracted (JSON)</a>`;
+      }
+      if (data.drive_link) {
+        result.innerHTML += ` &nbsp; <a href="${data.drive_link}" target="_blank" style="background:#0F9D58;">Open in Google Drive</a>`;
+      }
     }
   } catch (e) {
     log.textContent = 'Request failed: ' + e;
@@ -259,7 +265,7 @@ def generate():
         out_pptx = os.path.join(work_dir, "deck.pptx")
 
         with contextlib.redirect_stderr(log_buf):
-            build_deck.build(lesson_path, out_pptx)
+            build_result = build_deck.build(lesson_path, out_pptx)
 
         if not os.path.exists(out_pptx):
             return jsonify(ok=False, log=log_buf.getvalue() + "\nNo output file was produced."), 500
@@ -273,7 +279,14 @@ def generate():
         final_path = os.path.join(OUTPUT_DIR, final_name)
         os.replace(out_pptx, final_path)
 
-        return jsonify(ok=True, log=log_buf.getvalue(), filename=final_name)
+        extracted_json_name = None
+        extracted_json_src = out_pptx + ".extracted.json"
+        if os.path.exists(extracted_json_src):
+            extracted_json_name = final_name + ".extracted.json"
+            os.replace(extracted_json_src, os.path.join(OUTPUT_DIR, extracted_json_name))
+
+        return jsonify(ok=True, log=log_buf.getvalue(), filename=final_name, extracted_json=extracted_json_name,
+                       drive_link=build_result.get("drive_link") if build_result else None)
 
     except SystemExit as e:
         return jsonify(ok=False, log=log_buf.getvalue() + f"\n{e}"), 400
@@ -329,10 +342,12 @@ def _process_lesson_approved(payload):
 
     out_pptx = os.path.join(OUTPUT_DIR, f"Lesson_{payload.get('lesson_number', payload['lesson_id'])}.pptx")
     try:
-        build_deck.build(lesson_txt_path, out_pptx)
+        build_result = build_deck.build(lesson_txt_path, out_pptx)
         payload["_status"] = "done"
         payload["_output"] = out_pptx
-        print(f"[webhook] lesson_id={payload.get('lesson_id')}: generated {out_pptx}", file=sys.stderr)
+        payload["_drive_link"] = (build_result or {}).get("drive_link")
+        print(f"[webhook] lesson_id={payload.get('lesson_id')}: generated {out_pptx}"
+              + (f", uploaded to {payload['_drive_link']}" if payload["_drive_link"] else ""), file=sys.stderr)
     except SystemExit as e:
         payload["_status"] = "unsupported_type"
         payload["_note"] = str(e)

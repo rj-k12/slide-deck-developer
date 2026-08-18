@@ -39,6 +39,81 @@ def log(msg):
     print(f"[build_deck] {msg}", file=sys.stderr)
 
 
+def maybe_upload_to_drive(file_path, filename):
+    """
+    Optional: uploads the finished deck to a Google Drive folder using a
+    service account, if GOOGLE_SERVICE_ACCOUNT_JSON and
+    GOOGLE_DRIVE_FOLDER_ID are both set in the environment. A service
+    account (not interactive OAuth) is the right fit here specifically
+    because this runs on a server with no human present to click through
+    a consent screen -- the account authenticates itself directly, using
+    access granted ahead of time by sharing a real Drive folder with the
+    service account's own email address.
+
+    Returns a webViewLink (a real, clickable Drive URL) on success, or
+    None if the feature isn't configured. A configured-but-failing
+    upload logs the real error and returns None rather than raising --
+    the deck itself already generated successfully by the time this
+    runs, and a Drive misconfiguration shouldn't take that away.
+    """
+    sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+    folder_id = os.environ.get("GOOGLE_DRIVE_FOLDER_ID")
+    if not sa_json or not folder_id:
+        return None
+
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build as build_drive_service
+        from googleapiclient.http import MediaFileUpload
+    except ImportError:
+        log("GOOGLE_SERVICE_ACCOUNT_JSON is set, but the Drive libraries "
+            "aren't installed (see requirements.txt) -- skipping upload.")
+        return None
+
+    try:
+        creds = service_account.Credentials.from_service_account_info(
+            json.loads(sa_json),
+            scopes=["https://www.googleapis.com/auth/drive.file"],
+        )
+        service = build_drive_service("drive", "v3", credentials=creds)
+        media = MediaFileUpload(
+            file_path,
+            mimetype="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+        uploaded = service.files().create(
+            body={"name": filename, "parents": [folder_id]},
+            media_body=media,
+            fields="id,webViewLink",
+        ).execute()
+        link = uploaded.get("webViewLink")
+        log(f"Uploaded to Google Drive: {link}")
+        return link
+    except Exception as e:
+        log(f"Google Drive upload failed (deck still generated successfully): {e}")
+        return None
+
+
+def run_step(cmd, step_name):
+    """
+    Runs a subprocess step and, on failure, raises with the actual
+    stdout/stderr captured directly in the exception message -- not just
+    printed to the console, where it's easy to lose in log scrollback or
+    a truncated copy-paste. Every subprocess call in this pipeline goes
+    through this rather than a bare subprocess.run(check=True).
+    """
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise SystemExit(
+            f"{step_name} failed (exit code {result.returncode}).\n"
+            f"Command: {' '.join(cmd)}\n"
+            f"--- stdout ---\n{result.stdout.strip()}\n"
+            f"--- stderr ---\n{result.stderr.strip()}"
+        )
+    if result.stdout.strip():
+        log(result.stdout.strip())
+    return result
+
+
 def run_extraction(lesson_path):
     sys.path.insert(0, HERE)
     from extract_lesson import extract_from_path
@@ -74,9 +149,9 @@ def build(lesson_input_path, out_pptx_path, keep_temp=False):
 
         icons_dir = os.path.join(work_dir, "icons")
         log("Generating vocabulary icons...")
-        subprocess.run(
+        run_step(
             ["python3", os.path.join(HERE, "make_vocab_icons.py"), lesson_json_path, icons_dir],
-            check=True,
+            "Vocabulary icon generation",
         )
 
         # ----- Step 3: generate the branded cover slide -----
@@ -85,16 +160,16 @@ def build(lesson_input_path, out_pptx_path, keep_temp=False):
         cover_text = f"Grade {grade}, Knowledge Unit {unit}"
         cover_png = os.path.join(work_dir, "cover.png")
         log(f"Generating cover slide for {cover_text!r}...")
-        subprocess.run(
+        run_step(
             ["python3", os.path.join(HERE, "assets", "make_cover.py"), cover_text, cover_png],
-            check=True,
+            "Cover slide generation",
         )
 
         # ----- Step 4: generate the deck -----
         log("Generating slide deck...")
-        subprocess.run(
+        run_step(
             ["node", generator_script, lesson_json_path, out_pptx_path, cover_png, icons_dir],
-            check=True,
+            "Slide deck generation",
         )
 
         # ----- Step 5: QA -----
@@ -128,7 +203,20 @@ def build(lesson_input_path, out_pptx_path, keep_temp=False):
         except Exception:
             raise SystemExit(f"QA validation failed -- could not open generated file:\n{traceback.format_exc()}")
 
+        # Always preserve a copy of what was actually extracted, right
+        # next to the final output -- regardless of keep_temp. This is
+        # the only way to answer "why did the deck come out looking like
+        # X" questions with real data instead of guessing: the extracted
+        # JSON is the ground truth for what Claude actually returned,
+        # independent of whether the generator rendered it as intended.
+        extracted_json_path = out_pptx_path + ".extracted.json"
+        shutil.copy(lesson_json_path, extracted_json_path)
+        log(f"Saved extracted lesson JSON to: {extracted_json_path}")
+
+        drive_link = maybe_upload_to_drive(out_pptx_path, os.path.basename(out_pptx_path))
+
         log(f"Done: {out_pptx_path}")
+        return {"drive_link": drive_link}
     finally:
         if not keep_temp:
             shutil.rmtree(work_dir, ignore_errors=True)
