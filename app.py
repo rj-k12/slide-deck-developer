@@ -196,6 +196,15 @@ async function generate() {
 """
 
 
+@app.route("/healthz")
+def healthz():
+    # Deliberately unauthenticated -- platform health checks (Render,
+    # Cloud Run, etc.) can't supply basic-auth credentials, so this can't
+    # live behind require_ui_auth the way "/" does. Returns no real
+    # information, just confirms the process is up and responding.
+    return jsonify(status="ok"), 200
+
+
 @app.route("/")
 @require_ui_auth
 def index():
