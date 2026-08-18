@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RedThread Slide Deck Platform</title>
+<style>
+  :root { --purple: #3928AA; --navy: #0E0142; --coral: #F19A65; --blue-pale: #E5EFF9; --border: #DCD6EE; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; background: #F6F7FB; color: var(--navy); margin: 0; }
+  header { background: var(--purple); color: white; padding: 24px 32px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 6px 0 0; opacity: .85; font-size: 13px; }
+  main { max-width: 720px; margin: 32px auto; padding: 0 20px; }
+  .card { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--purple); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .03em; }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: inherit; margin-bottom: 16px; background: var(--blue-pale);
+  }
+  textarea { min-height: 160px; resize: vertical; }
+  input[type=file] { margin-bottom: 16px; }
+  .row { display: flex; gap: 20px; }
+  .row > div { flex: 1; }
+  button {
+    background: var(--coral); color: var(--navy); border: none; border-radius: 8px;
+    padding: 12px 24px; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  button:hover { opacity: .9; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  #log { background: var(--navy); color: #C9BEEB; font-family: monospace; font-size: 12.5px;
+         padding: 16px; border-radius: 8px; white-space: pre-wrap; min-height: 60px; margin-top: 16px; display: none; }
+  #result { margin-top: 16px; display: none; }
+  #result a { display: inline-block; background: var(--purple); color: white; padding: 12px 20px;
+              border-radius: 8px; text-decoration: none; font-weight: 700; }
+  .hint { font-size: 12px; color: #6B6478; margin-top: -10px; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; background: var(--blue-pale); }
+  .tab.active { background: var(--purple); color: white; }
+  .preview-note { background: #FEF3C7; border: 1px solid #D97706; border-radius: 8px; padding: 10px 16px; margin: 0 20px 20px; max-width: 680px; font-size: 12px; color: #92400E; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RedThread Slide Deck Platform</h1>
+  <p>Upload a lesson, get back a finished, on-brand PowerPoint deck.</p>
+</header>
+<div class="preview-note">This is the actual UI code from app.py, rendered directly. The two tabs below are fully live -- try clicking them, and note the file picker now accepts .pdf as well as .txt. The "Generate" button itself is stubbed out in this preview since there's no local server behind it here.</div>
+<main>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-mode="raw" onclick="setMode('raw')">Raw lesson text</div>
+      <div class="tab" data-mode="json" onclick="setMode('json')">Pre-extracted JSON</div>
+    </div>
+
+    <div id="mode-raw">
+      <label>Anthropic API key</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-...">
+      <div class="hint">Only used in memory for this one build, never saved or logged.</div>
+      <label>Lesson file (.pdf or .txt Teacher Guide excerpt)</label>
+      <input type="file" id="rawFile" accept=".txt,.pdf">
+      <div class="hint">PDFs are sent to Claude as-is (it reads the actual page layout, tables, and highlighting directly) -- or paste plain text below instead of uploading a file.</div>
+      <textarea id="rawText" placeholder="Paste raw lesson text here..."></textarea>
+    </div>
+
+    <div id="mode-json" style="display:none">
+      <label>Pre-extracted lesson JSON</label>
+      <input type="file" id="jsonFile" accept=".json">
+      <div class="hint">Skips the extraction step -- useful for testing without an API key.</div>
+    </div>
+
+    <button id="goBtn" onclick="generate()">Generate slide deck</button>
+    <div id="log"></div>
+    <div id="result"></div>
+  </div>
+</main>
+
+<script>
+function setMode(mode) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  document.getElementById('mode-raw').style.display = mode === 'raw' ? 'block' : 'none';
+  document.getElementById('mode-json').style.display = mode === 'json' ? 'block' : 'none';
+}
+
+function generate() {
+  const log = document.getElementById('log');
+  log.style.display = 'block';
+  log.textContent = "(In the real app, this calls your local server's /generate endpoint and streams back the pipeline log -- icon resolution, cover generation, QA checks -- then shows a download link. No server is running in this static preview.)";
+}
+</script>
+</body>
+</html>
+

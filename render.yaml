@@ -1,0 +1,25 @@
+# render.yaml -- a Render "Blueprint". If this file is present at the
+# repo root, Render's dashboard detects it automatically when you connect
+# the repo and offers a single "Deploy" button, pre-filled with everything
+# below -- you only need to type in the actual secret values (Render
+# prompts for these separately since they're marked sync: false, meaning
+# it deliberately does NOT store them in this file/your repo).
+
+services:
+  - type: web
+    name: redthread-slide-deck
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: SLIDE_DECK_SERVICE_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: UI_USERNAME
+        sync: false
+      - key: UI_PASSWORD
+        sync: false
+      - key: RETENTION_HOURS
+        value: "24"

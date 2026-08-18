@@ -1,0 +1,10 @@
+{
+  "name": "redthread-slide-deck-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generates branded PowerPoint decks from Knowledge curriculum lessons.",
+  "dependencies": {
+    "pptxgenjs": "4.0.1",
+    "@tabler/icons": "3.46.0"
+  }
+}

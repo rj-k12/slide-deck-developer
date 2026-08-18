@@ -1,0 +1,15 @@
+[Unit]
+Description=RedThread Slide Deck Platform
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/redthread-slide-deck
+EnvironmentFile=/opt/redthread-slide-deck/.env
+ExecStart=/opt/redthread-slide-deck/venv/bin/gunicorn --bind 127.0.0.1:5001 --workers 1 --threads 4 --timeout 120 app:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

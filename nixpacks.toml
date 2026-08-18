@@ -1,0 +1,19 @@
+# nixpacks.toml -- Docker-free deployment config for Railway (or any
+# other Nixpacks-based host).
+#
+# Nixpacks auto-detects Python (requirements.txt) and Node (package.json)
+# from this repo and installs both runtimes on its own -- the only thing
+# it can't infer automatically is the system-level LibreOffice + poppler
+# packages, so those are listed explicitly below.
+
+[phases.setup]
+aptPkgs = ["libreoffice-impress", "poppler-utils", "fonts-liberation"]
+
+[phases.install]
+cmds = [
+  "npm install --production",
+  "pip install --break-system-packages --no-cache-dir -r requirements.txt"
+]
+
+[start]
+cmd = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 app:app"

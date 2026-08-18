@@ -1,0 +1,135 @@
+{
+  "_extraction_notes": [
+    "AMBIGUOUS CALL: 'internal' and 'external' appear bolded inline in BOTH the Engage narrative (anticipatory) and the Launch narrative (where they get a real inline definition). Attributed to Launch here, since that's where the actual definition sentence lives. A different extraction pass could reasonably put them in Engage instead -- this is exactly the kind of judgment call that affects the 98-99% accuracy bar from the meeting.",
+    "Teacher-facing scaffolding ('Ask:', 'Key Ideas:', 'Back-Pocket Questions:') deliberately excluded from all slide content -- confirmed against the PDF's highlighting, which never marks these sections as extraction targets.",
+    "No explicit 'Quick Write' prompt exists in Lesson 6a -- only Discourse Club and Whole-Class Discourse share one prompt. Per spec, the Quick Write half of slide 8 is omitted entirely, not left blank."
+  ],
+  "grade": "Grade 4",
+  "unit_number": "2",
+  "unit_title": "A Road to Belonging: The Great Migration",
+  "lesson_number": "6a",
+  "lesson_type": "Reading",
+  "core_text": "Finding Langston",
+  "author": "Lesa Cline-Ransome",
+  "sections": [
+    {
+      "section_name": "Engage",
+      "vocabulary": [
+        {
+          "word": "develop",
+          "definition": "To become more complex, complete, or advanced. An idea is usually developed by presenting details that add to or change an understanding of a topic.",
+          "icon_concept": "lightbulb idea"
+        },
+        {
+          "word": "progress",
+          "definition": "To move forward into a new phase.",
+          "icon_concept": "arrow moving forward"
+        },
+        {
+          "word": "intensify",
+          "definition": "To grow stronger or more serious.",
+          "icon_concept": "flame fire"
+        }
+      ]
+    },
+    {
+      "section_name": "Launch",
+      "vocabulary": [
+        {
+          "word": "internal",
+          "definition": "Coming from inside of oneself.",
+          "icon_concept": "target center"
+        },
+        {
+          "word": "external",
+          "definition": "Coming from outside of oneself.",
+          "icon_concept": "arrow pointing outward"
+        },
+        {
+          "word": "isolated",
+          "definition": "Feeling distant and far from others. Feeling isolated often means you feel like you have to rely on yourself without the help of others.",
+          "icon_concept": "person alone"
+        }
+      ],
+      "chart": {
+        "title": "Sample Launch Chart",
+        "type": "reference",
+        "columns": [
+          "Event",
+          "How the Conflict Develops or Intensifies"
+        ],
+        "rows": [
+          [
+            "Langston focuses on memories of mother and Alabama. Not focusing on Chicago because he is so sad over his mother's death and missing his old life.",
+            "Langston struggles even more to fit in at school because instead of paying attention and focusing on starting a new life in Chicago, he constantly thinks about his sadness over his mother's death and life in Alabama he misses."
+          ],
+          [
+            "Bullies at school are now violent and hit him. Hint that they will hurt him more.",
+            "Conflict intensifies as Langston is afraid to go to school and cannot escape to his memories of Alabama and his mother. Makes Langston feel miserable."
+          ],
+          [
+            "Cannot share the bullying with his only parent\u2014his dad\u2014or the only neighbor who knows him\u2014Miss Fulton. Teachers do not protect Langston from bullies.",
+            "Langston's loneliness intensifies as he feels he does not have anyone to help him, even when he is in fear of his physical safety. Conflict develops because not only does Langston feel isolated, he starts to feel hopeless that the upcoming days at school will get worse."
+          ]
+        ]
+      },
+      "read_directions": "Read pages 46\u201350 of Finding Langston by Lesa Cline-Ransome."
+    }
+  ],
+  "independent_reading": {
+    "read_directions": "Read pages 51\u201355 of Finding Langston by Lesa Cline-Ransome. Take notes in your Unit Portfolio as you read.",
+    "vocabulary": [
+      {
+        "word": "handkerchief",
+        "definition": "A small square cloth used for wiping the nose or mouth.",
+        "icon_concept": "square cloth"
+      },
+      {
+        "word": "plot (of land)",
+        "definition": "A piece of land.",
+        "icon_concept": "map pin location"
+      },
+      {
+        "word": "debt",
+        "definition": "Something, usually money, owed as payment for something else.",
+        "icon_concept": "receipt payment owed"
+      },
+      {
+        "word": "plant",
+        "definition": "A factory that manufactures a product.",
+        "icon_concept": "factory building"
+      }
+    ],
+    "chart": {
+      "type": "blank",
+      "columns": [
+        "Event",
+        "How the Conflict Develops or Intensifies"
+      ]
+    }
+  },
+  "shared_analysis": null,
+  "quick_write_prompt": null,
+  "discourse_club_prompt": "How has Langston's conflict developed or intensified throughout the text so far?",
+  "whole_class_discourse_prompt": "How has Langston's conflict developed or intensified throughout the text so far?",
+  "essential_question": "How can we understand characters by examining their responses to conflict?",
+  "teaching_point": "Fiction readers know that a story's conflict changes as the narrative progresses. They track the conflict as the plot progresses and ask themselves, \"How does the conflict develop and intensify?\"",
+  "lesson_vocabulary_review": [
+    {
+      "word": "internal",
+      "definition": "Coming from inside of oneself.",
+      "icon_concept": "target center"
+    },
+    {
+      "word": "external",
+      "definition": "Coming from outside of oneself.",
+      "icon_concept": "arrow pointing outward"
+    },
+    {
+      "word": "isolated",
+      "definition": "Feeling distant and far from others. Feeling isolated often means you feel like you have to rely on yourself without the help of others.",
+      "icon_concept": "person alone"
+    }
+  ],
+  "supported": true
+}

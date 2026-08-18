@@ -1,0 +1,80 @@
+{
+  "_extraction_notes": [
+    "GAP: Launch references a resource called 'Qualities of a Strong Literature Response' (Folio 64, 'display and discuss') but Lesson 6b itself doesn't reprint it -- per the spec's own rule 1c, recreating it requires checking earlier lessons or the unit's student materials, neither of which I have loaded for this pass. Left as a flagged placeholder rather than guessed.",
+    "JUDGMENT CALL: The Launch section contains TWO distinct Literature Response prompts -- a mentor/practice prompt ('How does the setting of the library impact Langston?', Folio 64) used for guided evaluation practice, and the REAL prompt for this lesson ('What is Langston's conflict...', Folio 38). Attributed the mentor prompt + the 3 evaluate-claims exercise to Launch (since the rule allows 'prompt, mentor, and/or criteria list as referenced' there), and only the real Folio 38 prompt to the dedicated Literature Response slide.",
+    "Teacher-facing guidance ('Ask:', 'Key Ideas:') excluded from slide content, same as the Reading lesson pass -- except the 'Display the following claims, and have students evaluate them' claims themselves, which are an explicit display instruction, not teacher-only scaffolding."
+  ],
+  "grade": "Grade 4",
+  "unit_number": "2",
+  "unit_title": "A Road to Belonging: The Great Migration",
+  "lesson_number": "6b",
+  "lesson_type": "Literature Response",
+  "core_text": "Finding Langston",
+  "author": "Lesa Cline-Ransome",
+  "essential_question": "How do narrative writers use event sequences and descriptive details to craft a compelling story?",
+  "teaching_point": "Writers study a prompt and respond with a claim that states their idea. They ask themselves, \"What does this prompt want me to do? What do I need to include in my claim to answer all parts of the prompt?\"",
+  "sections": [
+    {
+      "section_name": "Engage",
+      "vocabulary": [
+        {
+          "word": "compelling",
+          "definition": "Engaging, convincing, or thought-provoking.",
+          "icon_concept": "magnet pull"
+        }
+      ]
+    },
+    {
+      "section_name": "Launch",
+      "vocabulary": [
+        {
+          "word": "ensure",
+          "definition": "To make sure or certain.",
+          "icon_concept": "shield check"
+        },
+        {
+          "word": "evaluate",
+          "definition": "To study something and determine its level of accuracy, completion, and opportunities for improvement.",
+          "icon_concept": "checklist review"
+        },
+        {
+          "word": "evolve",
+          "definition": "To change over time.",
+          "icon_concept": "refresh cycle transform"
+        }
+      ],
+      "resource_unavailable": "Qualities of a Strong Literature Response (Folio 64) -- referenced but not reprinted in this lesson; needs an earlier-lesson or student-materials lookup this pass didn't have access to.",
+      "mentor_prompt": "How does the setting of the library impact Langston?",
+      "claims_to_evaluate": [
+        "Claim #1: When Langston is at the library, he sees a bright ceiling and librarians.",
+        "Claim #2: When Langston goes to the library, he feels impacted by it.",
+        "Claim #3: Langston is curious about the library and feels unsure of himself inside of it at first, but he soon discovers the library is the only place in Chicago where he feels comfortable."
+      ]
+    }
+  ],
+  "literature_response_prompt": "What is Langston's conflict in Finding Langston? How does the conflict evolve in Chapters 1 to 11?",
+  "writers_circle": {
+    "focus_points": [
+      "Claims, and whether they completely address Langston's main conflict and how it evolves throughout the first 11 chapters.",
+      "Response structures, and whether they clearly include the writers' ideas or are unclear and include details from the text that should be explained as evidence."
+    ]
+  },
+  "lesson_vocabulary_review": [
+    {
+      "word": "evaluate",
+      "definition": "To study something and determine its level of accuracy, completion, and opportunities for improvement.",
+      "icon_concept": "checklist review"
+    },
+    {
+      "word": "ensure",
+      "definition": "To make sure or certain.",
+      "icon_concept": "shield check"
+    },
+    {
+      "word": "evolve",
+      "definition": "To change over time.",
+      "icon_concept": "refresh cycle transform"
+    }
+  ],
+  "supported": true
+}
