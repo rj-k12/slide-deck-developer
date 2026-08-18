@@ -31,6 +31,7 @@ import os
 import json
 import base64
 import urllib.request
+import urllib.error
 
 SUPPORTED_TYPES = ["Reading", "Close Reading", "Literature Response"]
 
@@ -184,11 +185,47 @@ def extract(content) -> dict:
             "anthropic-version": "2023-06-01",
         },
     )
-    with urllib.request.urlopen(req) as resp:
-        data = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw_response = resp.read()
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        raise SystemExit(
+            f"Anthropic API returned HTTP {e.code}:\n{error_body}"
+        ) from None
 
-    raw_text = "".join(block.get("text", "") for block in data.get("content", []))
-    result = json.loads(raw_text)
+    data = json.loads(raw_response)
+
+    # Real diagnostics instead of a bare crash: show what actually came
+    # back (stop_reason, block types, a text snippet) whenever the
+    # response isn't the clean JSON-only reply the system prompt asks
+    # for, rather than letting json.loads fail with an opaque
+    # "Expecting value" error that gives no hint why.
+    content_blocks = data.get("content", [])
+    raw_text = "".join(block.get("text", "") for block in content_blocks if block.get("type") == "text")
+
+    if not raw_text.strip():
+        block_types = [b.get("type") for b in content_blocks]
+        raise SystemExit(
+            "Extraction failed: Claude's response had no text content to "
+            "parse.\n"
+            f"  stop_reason: {data.get('stop_reason')!r}\n"
+            f"  content block types: {block_types!r}\n"
+            f"  full response: {json.dumps(data, indent=2)[:2000]}\n"
+            "This usually means either the input was too large/unclear for "
+            "the model to act on, or the request hit an unexpected stop "
+            "condition -- the details above should show which."
+        )
+
+    try:
+        result = json.loads(raw_text)
+    except json.JSONDecodeError:
+        raise SystemExit(
+            "Extraction failed: Claude's response wasn't valid JSON despite "
+            "the system prompt requiring it.\n"
+            f"  stop_reason: {data.get('stop_reason')!r}\n"
+            f"  raw text (first 2000 chars): {raw_text[:2000]!r}"
+        ) from None
 
     if not result.get("supported", False):
         sys.stderr.write(
