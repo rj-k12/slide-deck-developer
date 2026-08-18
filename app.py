@@ -121,7 +121,10 @@ PAGE = """
     </div>
 
     <div id="mode-raw">
-      <label>Anthropic API key</label>
+      {% if server_has_key %}
+      <div class="hint" style="margin-top:0;">A server-configured API key is already available -- you don't need to enter one. (You still can, to use your own key for this one build instead.)</div>
+      {% endif %}
+      <label>Anthropic API key {% if server_has_key %}(optional){% endif %}</label>
       <input type="password" id="apiKey" placeholder="sk-ant-...">
       <div class="hint">Only used in memory for this one build, never saved or logged.</div>
       <label>Lesson file (.pdf or .txt Teacher Guide excerpt)</label>
@@ -164,8 +167,7 @@ async function generate() {
 
   if (mode === 'raw') {
     const apiKey = document.getElementById('apiKey').value.trim();
-    if (!apiKey) { log.textContent = 'Enter an API key first.'; btn.disabled = false; return; }
-    form.append('apiKey', apiKey);
+    if (apiKey) form.append('apiKey', apiKey);
     const file = document.getElementById('rawFile').files[0];
     const text = document.getElementById('rawText').value.trim();
     if (file) form.append('rawFile', file);
@@ -208,7 +210,7 @@ def healthz():
 @app.route("/")
 @require_ui_auth
 def index():
-    return render_template_string(PAGE)
+    return render_template_string(PAGE, server_has_key=bool(os.environ.get("ANTHROPIC_API_KEY")))
 
 
 @app.route("/generate", methods=["POST"])
@@ -223,11 +225,16 @@ def generate():
     api_key_was_set = False
     try:
         if mode == "raw":
-            api_key = request.form.get("apiKey", "").strip()
-            if not api_key:
-                return jsonify(ok=False, log="No API key provided."), 400
-            os.environ["ANTHROPIC_API_KEY"] = api_key
-            api_key_was_set = True
+            browser_api_key = request.form.get("apiKey", "").strip()
+            server_has_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
+            if browser_api_key:
+                os.environ["ANTHROPIC_API_KEY"] = browser_api_key
+                api_key_was_set = True
+            elif not server_has_key:
+                return jsonify(ok=False, log="No API key provided, and none is configured on the server."), 400
+            # else: a server-side ANTHROPIC_API_KEY is already set (e.g. via
+            # this deployment's environment config) -- use it as-is, don't
+            # require the browser to supply one too.
 
             if "rawFile" in request.files and request.files["rawFile"].filename:
                 uploaded = request.files["rawFile"]
