@@ -29,6 +29,7 @@ Never hardcode a key in this file.
 import sys
 import os
 import json
+import re
 import base64
 import urllib.request
 import urllib.error
@@ -171,7 +172,7 @@ def extract(content) -> dict:
 
     body = json.dumps({
         "model": "claude-sonnet-5",
-        "max_tokens": 4000,
+        "max_tokens": 8000,
         "system": SYSTEM_PROMPT,
         "messages": [{"role": "user", "content": content}],
     }).encode("utf-8")
@@ -217,14 +218,34 @@ def extract(content) -> dict:
             "condition -- the details above should show which."
         )
 
+    # Defensive: the system prompt asks for raw JSON with no markdown
+    # fences, but models sometimes wrap it in ```json ... ``` anyway.
+    # Strip that before parsing rather than trust compliance blindly.
+    cleaned_text = raw_text.strip()
+    if cleaned_text.startswith("```"):
+        cleaned_text = re.sub(r"^```[a-zA-Z]*\n?", "", cleaned_text)
+        cleaned_text = re.sub(r"\n?```\s*$", "", cleaned_text)
+
+    if data.get("stop_reason") == "max_tokens":
+        raise SystemExit(
+            "Extraction failed: Claude's response was cut off before "
+            "finishing (hit the max_tokens limit), so the JSON is "
+            "incomplete and can't be parsed.\n"
+            f"  raw text so far (last 500 chars): {cleaned_text[-500:]!r}\n"
+            "Fix: increase max_tokens in extract_lesson.py's extract() "
+            "function -- this lesson's full extraction needs more room "
+            "than what's currently configured."
+        )
+
     try:
-        result = json.loads(raw_text)
+        result = json.loads(cleaned_text)
     except json.JSONDecodeError:
         raise SystemExit(
             "Extraction failed: Claude's response wasn't valid JSON despite "
-            "the system prompt requiring it.\n"
+            "the system prompt requiring it (checked for and stripped "
+            "markdown code fences first, still didn't parse).\n"
             f"  stop_reason: {data.get('stop_reason')!r}\n"
-            f"  raw text (first 2000 chars): {raw_text[:2000]!r}"
+            f"  raw text (first 2000 chars): {cleaned_text[:2000]!r}"
         ) from None
 
     if not result.get("supported", False):
