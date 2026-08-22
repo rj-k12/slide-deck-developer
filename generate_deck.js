@@ -83,7 +83,7 @@ function slideTitle(slide, title, onDark) {
 // This is a DIFFERENT visual pattern from the pink dashed combined intro
 // slide (Quick Write & Discourse Clubs together), which is correct as-is.
 function detailPromptSlide(s, opts) {
-  const { cardColor, accentColor, iconPath, cardTitle, description, promptLabel, promptText } = opts;
+  const { cardColor, accentColor, iconPath, cardTitle, description, promptLabel, promptText, boxBorderColor } = opts;
   const cardX = 0.7, cardY = 1.9, cardW = 3.0, cardH = 3.85;
   // Radius confirmed from template (Discourse Clubs / Quick Write detail
   // slides): adj=5454 on the icon card -> ~0.167in at this file's scale.
@@ -99,11 +99,15 @@ function detailPromptSlide(s, opts) {
   s.addShape("rect", { x: boxX, y: cardY, w: 0.08, h: cardH, fill: { color: accentColor }, line: { type: "none" } });
   // Radius confirmed from template: adj=4285 on the white prompt box ->
   // ~0.167in, essentially the same absolute radius as the card above.
-  // Border color DETAIL_BOX_BORDER (pale pink) confirmed directly from
-  // the template on BOTH the Discourse Clubs and Quick Write slides --
-  // it does not vary per slide type the way accentColor does. Was
-  // BLUE_PALE, plain rect (no radius) before.
-  s.addShape("roundRect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, rectRadius: 0.167, fill: { color: WHITE }, line: { color: DETAIL_BOX_BORDER, width: 1 } });
+  // Border color: defaults to DETAIL_BOX_BORDER (pale pink), confirmed
+  // directly from the template on both the Discourse Clubs and Quick
+  // Write slides -- but Ashley's own comment on the Discourse Clubs
+  // slide specifically says "light orange outline," which contradicts
+  // that measurement. Going with her stated color for that one call site
+  // (see below) rather than the measured value, since she's looking at
+  // the real rendered deck and may be catching something this static
+  // template file doesn't reflect.
+  s.addShape("roundRect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, rectRadius: 0.167, fill: { color: WHITE }, line: { color: boxBorderColor || DETAIL_BOX_BORDER, width: 1 } });
   s.addText(promptLabel, { x: boxX + 0.4, y: cardY + 0.35, w: boxW - 0.8, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: accentColor, margin: 0 });
   s.addText(promptText, { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 }
@@ -395,6 +399,7 @@ if (lesson.discourse_club_prompt) {
   slideTitle(s, "Discourse Clubs", false);
   detailPromptSlide(s, {
     cardColor: PINK_PALE, accentColor: CORAL,
+    boxBorderColor: TP_BORDER_ORANGE, // Ashley's comment explicitly says "light orange outline" for this box
     iconPath: require("path").join(DETAIL_ICON_DIR, "discourse_clubs.png"),
     cardTitle: "Discourse Clubs",
     description: "Collaborate with your club to discuss and deepen your understanding of the text.",
