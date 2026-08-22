@@ -28,16 +28,28 @@ const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";
 const PAGE_W = 13.3, PAGE_H = 7.5;
 
+// Header gradient band (white -> pale yellow). Declared here, before the
+// EQ/TP/LG slide below (its first use), rather than down near
+// addDecorativeBg -- HEADER_GRADIENT is a top-level const, and const
+// declarations aren't hoisted the way function declarations are, so
+// calling addHeaderGradient() before this line had executed would throw
+// at runtime ("Cannot access 'HEADER_GRADIENT' before initialization").
+const HEADER_GRADIENT = require("path").join(__dirname, "assets", "header_gradient.png");
+function addHeaderGradient(slide) {
+  const scale = PAGE_W / 10;
+  slide.addImage({ path: HEADER_GRADIENT, x: 0, y: 0, w: 10 * scale, h: 1.2578 * scale });
+}
+
 function unitHeader() {
   return `${lesson.grade}, Knowledge Unit ${lesson.unit_number} | ${lesson.unit_title}`;
 }
 function footer(slide, pageNum, onDark) {
   const c = onDark ? "C9BEEB" : MUTED;
-  slide.addText(unitHeader(), { x: 0.5, y: PAGE_H - 0.4, w: PAGE_W - 1.5, h: 0.3, fontFace: "Figtree", fontSize: 12, italic: true, color: c, align: "left", margin: 0 });
-  slide.addText(String(pageNum), { x: PAGE_W - 0.9, y: PAGE_H - 0.4, w: 0.4, h: 0.3, fontFace: "Figtree", fontSize: 12, color: c, align: "right", margin: 0 });
+  slide.addText(unitHeader(), { x: 0.5, y: PAGE_H - 0.4, w: PAGE_W - 1.5, h: 0.3, fontFace: "Arial", fontSize: 12, color: c, align: "left", margin: 0 });
+  slide.addText(String(pageNum), { x: PAGE_W - 0.9, y: PAGE_H - 0.4, w: 0.4, h: 0.3, fontFace: "Arial", fontSize: 12, color: c, align: "right", margin: 0 });
 }
 function slideTitle(slide, title, onDark) {
-  slide.addText(title, { x: 0.55, y: 0.35, w: PAGE_W - 1.2, h: 0.6, fontFace: "Figtree", fontSize: 36, bold: true, color: onDark ? WHITE : TITLE_PURPLE, margin: 0 });
+  slide.addText(title, { x: 0.55, y: 0.35, w: PAGE_W - 1.2, h: 0.6, fontFace: "Arial", fontSize: 36, bold: true, color: onDark ? WHITE : TITLE_PURPLE, margin: 0 });
 }
 
 // Individual detail slide (Discourse Clubs / Quick Write / Whole-Class
@@ -53,14 +65,14 @@ function detailPromptSlide(s, opts) {
   if (iconPath) {
     s.addImage({ path: iconPath, x: cardX + 0.25, y: cardY + 0.3, w: 0.65, h: 0.65 });
   }
-  s.addText(cardTitle, { x: cardX + 0.25, y: cardY + 1.15, w: cardW - 0.5, h: 0.65, fontFace: "Figtree", fontSize: 21.5, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
-  s.addText(description, { x: cardX + 0.25, y: cardY + 1.85, w: cardW - 0.5, h: cardH - 2.05, fontFace: "Figtree", fontSize: 17.5, color: MUTED, margin: 0, valign: "top" });
+  s.addText(cardTitle, { x: cardX + 0.25, y: cardY + 1.15, w: cardW - 0.5, h: 0.65, fontFace: "Arial", fontSize: 21.5, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText(description, { x: cardX + 0.25, y: cardY + 1.85, w: cardW - 0.5, h: cardH - 2.05, fontFace: "Arial", fontSize: 17.5, color: MUTED, margin: 0, valign: "top" });
 
   const boxX = cardX + cardW + 0.45, boxW = PAGE_W - boxX - 0.55;
   s.addShape("rect", { x: boxX, y: cardY, w: 0.08, h: cardH, fill: { color: accentColor }, line: { type: "none" } });
   s.addShape("rect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, fill: { color: WHITE }, line: { color: BLUE_PALE, width: 1 } });
-  s.addText(promptLabel, { x: boxX + 0.4, y: cardY + 0.35, w: boxW - 0.8, h: 0.3, fontFace: "Figtree", fontSize: 18.5, bold: true, color: accentColor, margin: 0 });
-  s.addText(promptText, { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Figtree", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText(promptLabel, { x: boxX + 0.4, y: cardY + 0.35, w: boxW - 0.8, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: accentColor, margin: 0 });
+  s.addText(promptText, { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 }
 function chunk(arr, size) {
   const out = [];
@@ -87,8 +99,8 @@ function vocabBlock(slide, words, x, y, w, onDark) {
     if (iconPath) {
       slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
     }
-    slide.addText(item.word, { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Figtree", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
-    slide.addText(item.definition, { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: 1.55, fontFace: "Figtree", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+    slide.addText(item.word, { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
+    slide.addText(item.definition, { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: 1.55, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
   });
 }
 
@@ -98,20 +110,20 @@ function vocabBlock(slide, words, x, y, w, onDark) {
 function addChart(slide, chart, x, y, w, h) {
   const nRows = (chart.rows && chart.rows.length) || 4;
   const headerRow = chart.columns.map(c => ({
-    text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Figtree", fontSize: 14 }
+    text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Arial", fontSize: 14 }
   }));
   const bodyRows = [];
   for (let r = 0; r < nRows; r++) {
     const zebra = r % 2 === 1;
     const cells = chart.columns.map((_, ci) => {
       const text = (chart.rows && chart.rows[r]) ? chart.rows[r][ci] : "";
-      return { text, options: { color: BODY, fontFace: "Figtree", fontSize: 13, valign: "top", fill: { color: zebra ? PEACH : WHITE } } };
+      return { text, options: { color: BODY, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: zebra ? PEACH : WHITE } } };
     });
     bodyRows.push(cells);
   }
   slide.addTable([headerRow, ...bodyRows], {
     x, y, w, h,
-    fontFace: "Figtree", border: { type: "solid", color: TABLE_BORDER, pt: 1 }, autoPage: false,
+    fontFace: "Arial", border: { type: "solid", color: TABLE_BORDER, pt: 1 }, autoPage: false,
     rowH: [0.45, ...bodyRows.map(() => (h - 0.45) / nRows)],
   });
 }
@@ -131,14 +143,14 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   const s = pres.addSlide();
   s.background = { color: PURPLE };
   s.addShape("roundRect", { x: 0.55, y: 0.6, w: 1.9, h: 0.55, rectRadius: 0.28, fill: { color: CORAL }, line: { type: "none" } });
-  s.addText(`LESSON ${lesson.lesson_number}`, { x: 0.55, y: 0.6, w: 1.9, h: 0.55, fontFace: "Figtree", fontSize: 16, bold: true, color: NAVY_INK, align: "center", valign: "middle", margin: 0 });
-  s.addText(`Lesson ${lesson.lesson_number}: ${lesson.lesson_type}`, { x: 0.55, y: 1.3, w: 12.2, h: 1.8, fontFace: "Figtree", fontSize: 50, bold: true, color: WHITE, margin: 0, valign: "top" });
-  s.addText(`Grade ${lesson.grade.replace('Grade ','')}, Knowledge Unit ${lesson.unit_number}: ${lesson.unit_title}`, { x: 0.55, y: 3.35, w: 12.2, h: 1.1, fontFace: "Figtree", fontSize: 25.5, color: "E5EFF9", margin: 0, valign: "top" });
+  s.addText(`LESSON ${lesson.lesson_number}`, { x: 0.55, y: 0.6, w: 1.9, h: 0.55, fontFace: "Arial", fontSize: 16, bold: true, color: NAVY_INK, align: "center", valign: "middle", margin: 0 });
+  s.addText(`Lesson ${lesson.lesson_number}: ${lesson.lesson_type}`, { x: 0.55, y: 1.3, w: 12.2, h: 1.8, fontFace: "Arial", fontSize: 50, bold: true, color: WHITE, margin: 0, valign: "top" });
+  s.addText(`Grade ${lesson.grade.replace('Grade ','')}, Knowledge Unit ${lesson.unit_number}: ${lesson.unit_title}`, { x: 0.55, y: 3.35, w: 12.2, h: 1.1, fontFace: "Arial", fontSize: 25.5, color: "E5EFF9", margin: 0, valign: "top" });
   if (lesson.core_text) {
     const byLine = lesson.author ? `${lesson.core_text}  by ${lesson.author}` : lesson.core_text;
-    s.addText(`${byLine}${lesson.pages ? "   |   Pages " + lesson.pages : ""}`, { x: 0.55, y: 4.65, w: 12.2, h: 0.6, fontFace: "Figtree", fontSize: 21.5, italic: true, color: "C9BEEB", margin: 0, valign: "top" });
+    s.addText(`${byLine}${lesson.pages ? "   |   Pages " + lesson.pages : ""}`, { x: 0.55, y: 4.65, w: 12.2, h: 0.6, fontFace: "Arial", fontSize: 21.5, italic: true, color: "C9BEEB", margin: 0, valign: "top" });
   }
-  s.addText("Copyright \u00a9 2026 Lavinia Group. All Rights Reserved. RedThread is a trademark of K12 Coalition.", { x: 0.55, y: PAGE_H - 0.5, w: 11.5, h: 0.3, fontFace: "Figtree", fontSize: 10, color: "9A8FD1", margin: 0 });
+  s.addText("Copyright \u00a9 2026 Lavinia Group. All Rights Reserved. RedThread is a trademark of K12 Coalition.", { x: 0.55, y: PAGE_H - 0.5, w: 11.5, h: 0.3, fontFace: "Arial", fontSize: 10, color: "9A8FD1", margin: 0 });
 }
 
 // ===== Slide: EQ / TP / LG -- blank per spec. Matches the real template's
@@ -148,6 +160,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
 // a lot of dead space at the bottom of the slide) =====
 {
   const s = pres.addSlide();
+  addHeaderGradient(s);
   const colGap = 0.2;
   const colW = (PAGE_W - 1.1 - colGap) / 2;
   const rowTop = 2.15, rowBottom = PAGE_H - 0.8;
@@ -156,28 +169,28 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   // Essential Question box (full width)
   s.addShape("rect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("rect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
-  s.addText("ESSENTIAL QUESTION", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Figtree", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
+  s.addText("Essential Question", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.essential_question) {
-    s.addText(lesson.essential_question, { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Figtree", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(lesson.essential_question, { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
   }
 
   // Teaching Point box (left column, full remaining height)
   s.addShape("rect", { x: 0.55, y: rowTop, w: colW, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("rect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, fill: { color: WHITE }, line: { color: BLUE_PALE, width: 1 } });
-  s.addText("TEACHING POINT", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Figtree", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
+  s.addText("Teaching Point", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
-    s.addText(lesson.teaching_point, { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Figtree", fontSize: 24, color: BODY, margin: 0, valign: "top" });
+    s.addText(lesson.teaching_point, { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, color: BODY, margin: 0, valign: "top" });
   }
 
   // Language Goal box (right column, dashed lavender, full remaining height)
   const lgX = 0.55 + colW + colGap;
   s.addShape("rect", { x: lgX, y: rowTop, w: colW, h: 0.05, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("rect", { x: lgX, y: rowTop + 0.05, w: colW, h: rowH - 0.05, fill: { color: "F4F2FC" }, line: { color: PURPLE, width: 1, dashType: "dash" } });
-  s.addText("LANGUAGE GOAL", { x: lgX + 0.2, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Figtree", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
+  s.addText("Language Goal", { x: lgX + 0.2, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.language_goal) {
-    s.addText(lesson.language_goal, { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Figtree", fontSize: 24, italic: true, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(lesson.language_goal, { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, italic: true, color: NAVY_INK, margin: 0, valign: "top" });
   } else {
-    s.addText("Not specified in this lesson's source material.", { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Figtree", fontSize: 16, italic: true, color: MUTED, margin: 0, valign: "top" });
+    s.addText("Not specified in this lesson's source material.", { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 16, italic: true, color: MUTED, margin: 0, valign: "top" });
   }
 
   footer(s, 2, false);
@@ -194,11 +207,33 @@ function addDecorativeBg(slide) {
   slide.addImage({ path: DECORATIVE_BG, x: 5.99 * scale, y: 0, w: 4.01 * scale, h: 3.46 * scale });
 }
 
+// Header gradient band (white -> pale yellow), pptxgenjs's addShape only
+// supports 'none'/'solid' fills -- no gradient option exists in its API
+// (checked directly against node_modules/pptxgenjs/types/index.d.ts,
+// ShapeFillProps.type is typed as 'none' | 'solid' only) -- so this is a
+// pre-rendered PNG asset, same pattern as DECORATIVE_BG above, rather
+// than an addShape gradient fill that would silently render with no
+// visible fill at all.
+//
+// Position/size scaled from the template's own values (left=0, top=0,
+// w=10", h=1.2578" on its 10"-wide canvas) using the same `PAGE_W / 10`
+// convention as addDecorativeBg above, for consistency with the rest of
+// this file's template-to-canvas translation.
+//
+// Confirmed directly against the template's raw XML on exactly 4 slide
+// types: the Essential Question/Teaching Point/Language Goal slide,
+// Engage Vocabulary, Engage Resource, and Launch Chart -- NOT on Launch
+// Vocabulary or any other slide type. The template's shape has rot=180degrees,
+// which flips the gradient direction -- rendered result is pale yellow
+// at the very top of the slide, fading to white by the bottom edge of
+// the 1.26"-tall band. header_gradient.png is pre-rendered in that final
+// (post-rotation) direction already, so no rotation is needed here.
 let pageNum = 3;
 (lesson.sections || []).forEach(section => {
   if (section.vocabulary && section.vocabulary.length) {
     chunk(section.vocabulary, 4).forEach((words, i) => {
       const s = pres.addSlide();
+      if (section.section_name === "Engage") addHeaderGradient(s);
       if (section.section_name === "Launch") addDecorativeBg(s);
       slideTitle(s, `${section.section_name} Vocabulary${i > 0 ? " (continued)" : ""}`, false);
       vocabBlock(s, words, 0.55, 1.25, PAGE_W - 1.1, false);
@@ -207,10 +242,11 @@ let pageNum = 3;
   }
   if (section.chart) {
     const s = pres.addSlide();
+    if (section.section_name === "Launch") addHeaderGradient(s);
     slideTitle(s, `${section.section_name} Chart`, false);
     let y = 1.15;
     if (section.read_directions) {
-      s.addText(section.read_directions, { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Figtree", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+      s.addText(section.read_directions, { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
       y += 0.5;
     }
     addChart(s, section.chart, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
@@ -218,7 +254,7 @@ let pageNum = 3;
   } else if (section.read_directions) {
     const s = pres.addSlide();
     slideTitle(s, `${section.section_name} Read Directions`, false);
-    s.addText(section.read_directions, { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Figtree", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+    s.addText(section.read_directions, { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
     footer(s, pageNum++, false);
   }
 });
@@ -233,21 +269,21 @@ if (ir || sa) {
   slideTitle(s, title, false);
   const leftW = 6.6;
   let y = 1.1;
-  s.addText("TEACHING POINT", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Figtree", fontSize: 20, bold: true, color: CORAL, margin: 0 });
-  s.addText(lesson.teaching_point, { x: 0.55, y: y + 0.4, w: leftW, h: 1.15, fontFace: "Figtree", fontSize: 16, color: BODY, margin: 0, valign: "top" });
+  s.addText("Teaching Point", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
+  s.addText(lesson.teaching_point, { x: 0.55, y: y + 0.4, w: leftW, h: 1.15, fontFace: "Arial", fontSize: 16, color: BODY, margin: 0, valign: "top" });
   y += 1.65;
   if (block.read_directions) {
     s.addShape("roundRect", { x: 0.55, y, w: leftW, h: 1.0, rectRadius: 0.06, fill: { color: TAN_BG }, line: { type: "none" } });
-    s.addText(block.read_directions, { x: 0.75, y: y + 0.1, w: leftW - 0.4, h: 0.8, fontFace: "Figtree", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(block.read_directions, { x: 0.75, y: y + 0.1, w: leftW - 0.4, h: 0.8, fontFace: "Arial", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
     y += 1.15;
   }
   if (block.vocabulary && block.vocabulary.length) {
-    s.addText("IMPORTANT VOCABULARY", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Figtree", fontSize: 20, bold: true, color: CORAL, margin: 0 });
+    s.addText("IMPORTANT VOCABULARY", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
     y += 0.42;
     block.vocabulary.forEach(v => {
       s.addShape("ellipse", { x: 0.6, y: y + 0.1, w: 0.11, h: 0.11, fill: { color: VIOLET }, line: { type: "none" } });
       s.addText([{ text: `${v.word}: `, options: { bold: true, color: NAVY_INK } }, { text: v.definition, options: { color: BODY } }],
-        { x: 0.85, y, w: leftW - 0.3, h: 0.65, fontFace: "Figtree", fontSize: 16, margin: 0, valign: "top" });
+        { x: 0.85, y, w: leftW - 0.3, h: 0.65, fontFace: "Arial", fontSize: 16, margin: 0, valign: "top" });
       y += 0.66;
     });
   }
@@ -268,10 +304,10 @@ if (lesson.quick_write_prompt || lesson.discourse_club_prompt) {
   const boxW = boxes.length === 2 ? (PAGE_W - 1.3) / 2 : PAGE_W - 1.1;
   boxes.forEach((b, i) => {
     const bx = 0.55 + i * (boxW + 0.2);
-    s.addText(b.label, { x: bx, y: 1.2, w: boxW, h: 0.35, fontFace: "Figtree", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+    s.addText(b.label, { x: bx, y: 1.2, w: boxW, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
     s.addShape("roundRect", { x: bx, y: 1.6, w: boxW, h: 2.6, rectRadius: 0.06, fill: { color: PINK_PALE }, line: { color: PINK_BORDER, width: 1.5, dashType: "dash" } });
-    s.addText([{ text: "Prompt: ", options: { bold: true, color: PURPLE } }, { text: b.prompt, options: { color: NAVY_INK } }],
-      { x: bx + 0.3, y: 2.4, w: boxW - 0.6, h: 1.2, fontFace: "Figtree", fontSize: 24, margin: 0, valign: "top" });
+    s.addText("Prompt", { x: bx + 0.3, y: 2.0, w: boxW - 0.6, h: 0.35, fontFace: "Arial", fontSize: 24, bold: true, color: PURPLE, margin: 0 });
+    s.addText(b.prompt, { x: bx + 0.3, y: 2.4, w: boxW - 0.6, h: 1.2, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
   });
   footer(s, pageNum++, false);
 }
@@ -332,13 +368,13 @@ if (lesson.whole_class_discourse_prompt) {
   slideTitle(s, "Closing", false);
   s.addShape("rect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("rect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
-  s.addText("ESSENTIAL QUESTION", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Figtree", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
-  s.addText(lesson.essential_question, { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Figtree", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText("Essential Question", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
+  s.addText(lesson.essential_question, { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
 
   s.addShape("rect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("rect", { x: 0.55, y: 2.8, w: PAGE_W - 1.1, h: 2.4, fill: { color: WHITE }, line: { color: BLUE_PALE, width: 1 } });
-  s.addText("TEACHING POINT", { x: 0.75, y: 3.0, w: PAGE_W - 1.5, h: 0.35, fontFace: "Figtree", fontSize: 22, bold: true, color: CORAL, margin: 0 });
-  s.addText(lesson.teaching_point, { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Figtree", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText("Teaching Point", { x: 0.75, y: 3.0, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+  s.addText(lesson.teaching_point, { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 
   footer(s, pageNum++, false);
 }
