@@ -18,6 +18,30 @@ const MUTED = "6B6478";
 const VIOLET = "9343F6";
 const TABLE_BORDER = "DCD6EE";
 const TAN_BG = "FBE8AB";
+// Confirmed directly from the template's raw XML (chart on its Launch
+// Chart slide): header row border matches the header's own PURPLE fill,
+// body rows use this orange -- NOT the uniform TABLE_BORDER gray this
+// generator used everywhere before.
+const TABLE_BORDER_BODY = "FFAB7B";
+// Confirmed directly from the template: the Teaching Point box's solid
+// outline on the EQ/TP/LG slide.
+const TP_BORDER_ORANGE = "FFAB7B";
+// Confirmed directly from the template's Closing slide specifically --
+// its Teaching Point box (full-width there, not split into columns) uses
+// a different, lighter border than the EQ/TP/LG slide's orange one.
+const TP_BORDER_CLOSING = "DCD6EE";
+// NOT independently confirmed against the template XML -- no border was
+// found on the Language Goal box in the one template file available.
+// Ashley's comment asked for "a lighter purple" outline; this is a
+// reasonable tint of PURPLE, not a measured value. Worth confirming with
+// her directly before treating this one as settled.
+const LG_BORDER_LIGHT_PURPLE = "B8AEE0";
+// Confirmed directly from the template's Discourse Clubs and Quick Write
+// detail slides -- both use this same pale pink for the white prompt
+// box's outline (the accent-bar color is what actually varies per
+// slide type, and that was already correct in this file before this
+// change).
+const DETAIL_BOX_BORDER = "FDEEF2";
 const PINK_BORDER = "ED6A91";
 const PINK_PALE = "FDEEF2";
 const AI_ICON_BLUE = "5B9BD5";
@@ -61,7 +85,10 @@ function slideTitle(slide, title, onDark) {
 function detailPromptSlide(s, opts) {
   const { cardColor, accentColor, iconPath, cardTitle, description, promptLabel, promptText } = opts;
   const cardX = 0.7, cardY = 1.9, cardW = 3.0, cardH = 3.85;
-  s.addShape("roundRect", { x: cardX, y: cardY, w: cardW, h: cardH, rectRadius: 0.08, fill: { color: cardColor }, line: { type: "none" } });
+  // Radius confirmed from template (Discourse Clubs / Quick Write detail
+  // slides): adj=5454 on the icon card -> ~0.167in at this file's scale.
+  // Was 0.08, visibly too subtle.
+  s.addShape("roundRect", { x: cardX, y: cardY, w: cardW, h: cardH, rectRadius: 0.167, fill: { color: cardColor }, line: { type: "none" } });
   if (iconPath) {
     s.addImage({ path: iconPath, x: cardX + 0.25, y: cardY + 0.3, w: 0.65, h: 0.65 });
   }
@@ -70,7 +97,13 @@ function detailPromptSlide(s, opts) {
 
   const boxX = cardX + cardW + 0.45, boxW = PAGE_W - boxX - 0.55;
   s.addShape("rect", { x: boxX, y: cardY, w: 0.08, h: cardH, fill: { color: accentColor }, line: { type: "none" } });
-  s.addShape("rect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, fill: { color: WHITE }, line: { color: BLUE_PALE, width: 1 } });
+  // Radius confirmed from template: adj=4285 on the white prompt box ->
+  // ~0.167in, essentially the same absolute radius as the card above.
+  // Border color DETAIL_BOX_BORDER (pale pink) confirmed directly from
+  // the template on BOTH the Discourse Clubs and Quick Write slides --
+  // it does not vary per slide type the way accentColor does. Was
+  // BLUE_PALE, plain rect (no radius) before.
+  s.addShape("roundRect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, rectRadius: 0.167, fill: { color: WHITE }, line: { color: DETAIL_BOX_BORDER, width: 1 } });
   s.addText(promptLabel, { x: boxX + 0.4, y: cardY + 0.35, w: boxW - 0.8, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: accentColor, margin: 0 });
   s.addText(promptText, { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 }
@@ -78,6 +111,25 @@ function chunk(arr, size) {
   const out = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
+}
+
+// Ashley's comment: "bold pg numbers" on read-directions text (e.g.
+// "Read pages 46-50 of Finding Langston..."). extract_lesson.py doesn't
+// give page numbers as a separate field within read_directions -- it's
+// one plain string -- so this finds a "page(s) N" or "page(s) N-N"
+// pattern within the string and bolds just that substring, returning a
+// run array for addText rather than a plain string.
+function boldPageNumbers(text) {
+  const re = /\bpages?\s+\d+(?:[\u2013-]\d+)?\b/gi;
+  const parts = [];
+  let lastIndex = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > lastIndex) parts.push({ text: text.slice(lastIndex, m.index) });
+    parts.push({ text: m[0], options: { bold: true } });
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex) });
+  return parts.length ? parts : [{ text }];
 }
 
 // Vocabulary card grid, matching the template's 2-col layout with the
@@ -94,7 +146,10 @@ function vocabBlock(slide, words, x, y, w, onDark) {
   words.forEach((item, i) => {
     const col = i % 2, row = Math.floor(i / 2);
     const bx = x + col * (colW + 0.3), by = y + row * 2.85;
-    slide.addShape("roundRect", { x: bx, y: by, w: colW, h: 2.7, rectRadius: 0.06, fill: { color: cardBg }, line: onDark ? { color: CORAL, width: 1 } : { type: "none" } });
+    // Radius confirmed from template (Engage Vocabulary slide): adj=4000
+    // on a w=4.31/h=3.80 card at this file's scale -> ~0.20in. Was 0.06,
+    // visibly too subtle compared to the template.
+    slide.addShape("roundRect", { x: bx, y: by, w: colW, h: 2.7, rectRadius: 0.20, fill: { color: cardBg }, line: onDark ? { color: CORAL, width: 1 } : { type: "none" } });
     const iconPath = iconPathFor(item.word);
     if (iconPath) {
       slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
@@ -109,21 +164,27 @@ function vocabBlock(slide, words, x, y, w, onDark) {
 // in with real content, and blank student-fillable charts).
 function addChart(slide, chart, x, y, w, h) {
   const nRows = (chart.rows && chart.rows.length) || 4;
+  // Border colors confirmed directly from the template's Launch Chart
+  // slide: the header row's border matches its own PURPLE fill, and body
+  // rows use TABLE_BORDER_BODY (orange) -- not the single uniform gray
+  // (TABLE_BORDER) this function used for every row before.
+  const headerBorder = { type: "solid", color: PURPLE, pt: 1 };
+  const bodyBorder = { type: "solid", color: TABLE_BORDER_BODY, pt: 1 };
   const headerRow = chart.columns.map(c => ({
-    text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Arial", fontSize: 14 }
+    text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Arial", fontSize: 14, border: headerBorder }
   }));
   const bodyRows = [];
   for (let r = 0; r < nRows; r++) {
     const zebra = r % 2 === 1;
     const cells = chart.columns.map((_, ci) => {
       const text = (chart.rows && chart.rows[r]) ? chart.rows[r][ci] : "";
-      return { text, options: { color: BODY, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: zebra ? PEACH : WHITE } } };
+      return { text, options: { color: BODY, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: zebra ? PEACH : WHITE }, border: bodyBorder } };
     });
     bodyRows.push(cells);
   }
   slide.addTable([headerRow, ...bodyRows], {
     x, y, w, h,
-    fontFace: "Arial", border: { type: "solid", color: TABLE_BORDER, pt: 1 }, autoPage: false,
+    fontFace: "Arial", autoPage: false,
     rowH: [0.45, ...bodyRows.map(() => (h - 0.45) / nRows)],
   });
 }
@@ -147,7 +208,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addText(`Lesson ${lesson.lesson_number}: ${lesson.lesson_type}`, { x: 0.55, y: 1.3, w: 12.2, h: 1.8, fontFace: "Arial", fontSize: 50, bold: true, color: WHITE, margin: 0, valign: "top" });
   s.addText(`Grade ${lesson.grade.replace('Grade ','')}, Knowledge Unit ${lesson.unit_number}: ${lesson.unit_title}`, { x: 0.55, y: 3.35, w: 12.2, h: 1.1, fontFace: "Arial", fontSize: 25.5, color: "E5EFF9", margin: 0, valign: "top" });
   if (lesson.core_text) {
-    const byLine = lesson.author ? `${lesson.core_text}  by ${lesson.author}` : lesson.core_text;
+    const byLine = lesson.author ? `${lesson.core_text} by ${lesson.author}` : lesson.core_text;
     s.addText(`${byLine}${lesson.pages ? "   |   Pages " + lesson.pages : ""}`, { x: 0.55, y: 4.65, w: 12.2, h: 0.6, fontFace: "Arial", fontSize: 21.5, italic: true, color: "C9BEEB", margin: 0, valign: "top" });
   }
   s.addText("Copyright \u00a9 2026 Lavinia Group. All Rights Reserved. RedThread is a trademark of K12 Coalition.", { x: 0.55, y: PAGE_H - 0.5, w: 11.5, h: 0.3, fontFace: "Arial", fontSize: 10, color: "9A8FD1", margin: 0 });
@@ -166,26 +227,37 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   const rowTop = 2.15, rowBottom = PAGE_H - 0.8;
   const rowH = rowBottom - rowTop;
 
-  // Essential Question box (full width)
+  // Essential Question box (full width). Corner radius confirmed from
+  // template: adj=8333 on an h=1.25in box at this file's 10"-reference
+  // scale -> radius = 0.08333 * 1.25 * (PAGE_W/10) = ~0.139in. No border
+  // in the template -- curved corners only.
   s.addShape("rect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
-  s.addShape("rect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.essential_question) {
     s.addText(lesson.essential_question, { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
   }
 
-  // Teaching Point box (left column, full remaining height)
+  // Teaching Point box (left column). Corner radius confirmed from
+  // template: adj=3703 on this box's actual dimensions -> ~0.139in at
+  // this file's scale (works out to the same absolute radius as the EQ
+  // box above, despite the different adj% -- the template appears to
+  // target one consistent absolute corner radius across box sizes).
+  // Border color FFAB7B (orange) confirmed directly from the template --
+  // this was BLUE_PALE before, which didn't match anything in the source.
   s.addShape("rect", { x: 0.55, y: rowTop, w: colW, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
-  s.addShape("rect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, fill: { color: WHITE }, line: { color: BLUE_PALE, width: 1 } });
+  s.addShape("roundRect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: WHITE }, line: { color: TP_BORDER_ORANGE, width: 1.5 } });
   s.addText("Teaching Point", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
     s.addText(lesson.teaching_point, { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, color: BODY, margin: 0, valign: "top" });
   }
 
-  // Language Goal box (right column, dashed lavender, full remaining height)
+  // Language Goal box (right column). Corner radius same 0.139in as
+  // above. Border color is NOT independently confirmed -- see
+  // LG_BORDER_LIGHT_PURPLE's definition above.
   const lgX = 0.55 + colW + colGap;
   s.addShape("rect", { x: lgX, y: rowTop, w: colW, h: 0.05, fill: { color: PURPLE }, line: { type: "none" } });
-  s.addShape("rect", { x: lgX, y: rowTop + 0.05, w: colW, h: rowH - 0.05, fill: { color: "F4F2FC" }, line: { color: PURPLE, width: 1, dashType: "dash" } });
+  s.addShape("roundRect", { x: lgX, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: "F4F2FC" }, line: { color: LG_BORDER_LIGHT_PURPLE, width: 1, dashType: "dash" } });
   s.addText("Language Goal", { x: lgX + 0.2, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.language_goal) {
     s.addText(lesson.language_goal, { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, italic: true, color: NAVY_INK, margin: 0, valign: "top" });
@@ -246,7 +318,7 @@ let pageNum = 3;
     slideTitle(s, `${section.section_name} Chart`, false);
     let y = 1.15;
     if (section.read_directions) {
-      s.addText(section.read_directions, { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+      s.addText(boldPageNumbers(section.read_directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
       y += 0.5;
     }
     addChart(s, section.chart, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
@@ -254,7 +326,7 @@ let pageNum = 3;
   } else if (section.read_directions) {
     const s = pres.addSlide();
     slideTitle(s, `${section.section_name} Read Directions`, false);
-    s.addText(section.read_directions, { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+    s.addText(boldPageNumbers(section.read_directions), { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
     footer(s, pageNum++, false);
   }
 });
@@ -274,7 +346,7 @@ if (ir || sa) {
   y += 1.65;
   if (block.read_directions) {
     s.addShape("roundRect", { x: 0.55, y, w: leftW, h: 1.0, rectRadius: 0.06, fill: { color: TAN_BG }, line: { type: "none" } });
-    s.addText(block.read_directions, { x: 0.75, y: y + 0.1, w: leftW - 0.4, h: 0.8, fontFace: "Arial", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(boldPageNumbers(block.read_directions), { x: 0.75, y: y + 0.1, w: leftW - 0.4, h: 0.8, fontFace: "Arial", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
     y += 1.15;
   }
   if (block.vocabulary && block.vocabulary.length) {
@@ -367,12 +439,16 @@ if (lesson.whole_class_discourse_prompt) {
   const s = pres.addSlide();
   slideTitle(s, "Closing", false);
   s.addShape("rect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
-  s.addShape("rect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
   s.addText(lesson.essential_question, { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
 
+  // Corner radius and border color confirmed from the template's Closing
+  // slide specifically -- this box is full-width here (no Language Goal
+  // column), and uses a lighter border (DCD6EE) than the split-column
+  // version on the EQ/TP/LG slide (which uses orange).
   s.addShape("rect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
-  s.addShape("rect", { x: 0.55, y: 2.8, w: PAGE_W - 1.1, h: 2.4, fill: { color: WHITE }, line: { color: BLUE_PALE, width: 1 } });
+  s.addShape("roundRect", { x: 0.55, y: 2.8, w: PAGE_W - 1.1, h: 2.4, rectRadius: 0.113, fill: { color: WHITE }, line: { color: TP_BORDER_CLOSING, width: 1 } });
   s.addText("Teaching Point", { x: 0.75, y: 3.0, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   s.addText(lesson.teaching_point, { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 
