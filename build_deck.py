@@ -32,6 +32,8 @@ GENERATORS = {
     "Reading": os.path.join(HERE, "generate_deck.js"),
     "Close Reading": os.path.join(HERE, "generate_deck.js"),
     "Literature Response": os.path.join(HERE, "generate_deck_literature_response.js"),
+    "Language": os.path.join(HERE, "generate_deck_language.js"),
+    "Discourse Deep Dive": os.path.join(HERE, "generate_deck_language.js"),
 }
 
 

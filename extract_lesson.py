@@ -10,13 +10,33 @@ calls Claude to:
      for icon_resolver.py to match against the Tabler icon set
 
 Currently supported lesson types: "Reading", "Close Reading", "Literature
-Response". Close Reading shares Reading's exact slide structure (same
-Engage/Launch pattern, same Independent-Reading/Shared-Analysis mutual
-exclusivity, same Quick Write/Discourse Club/Closing/Vocabulary Review) --
-confirmed by direct comparison of both rule sets in
+Response", "Language", "Discourse Deep Dive". Close Reading shares Reading's
+exact slide structure (same Engage/Launch pattern, same Independent-Reading/
+Shared-Analysis mutual exclusivity, same Quick Write/Discourse Club/Closing/
+Vocabulary Review) -- confirmed by direct comparison of both rule sets in
 Knowledge_Slide_Template_Outlines.pdf, so generate_deck.js handles both
-without any generator-side changes. Other types (Project, Unit Launch,
-Language Lesson, Discourse Deep Dive, Writing) are not yet built -- this
+without any generator-side changes. Language and Discourse Deep Dive are a
+second such pair, sharing generate_deck_language.js -- confirmed by direct
+comparison of real lessons in RT_Gr4U2_KNO_full_unit_Teacher_Guide.pdf
+(Lesson 7a: Language and Lesson 11b: Discourse Deep Dive). Two real
+structural differences from the Reading family, both handled by new schema
+fields below rather than forcing them into Reading's shape:
+  - Language lessons often have no Essential Question at all (Teaching
+    Point only) -- essential_question should be "" rather than invented.
+  - Both types can show reference charts with genuinely different column
+    counts and list-valued cells (e.g. "Common Grade 4 Suffixes": Suffix /
+    Meaning / two example words; "Strategies for Listening and Building
+    On": two columns, each cell itself a bulleted list) -- these use the
+    new planner_sections field, not the Reading family's single fixed
+    "chart" shape.
+  - Discourse Deep Dive can pose multiple numbered discussion prompts in
+    one Whole-Class Discourse ("Prompt #1", "Prompt #2", ...) rather than
+    Reading's single prompt -- see whole_class_discourse_prompts (plural,
+    a list) below, kept separate from Reading's existing singular
+    whole_class_discourse_prompt so nothing about the Reading family's
+    schema changes.
+
+Other types (Project, Unit Launch, Writing) are not yet built -- this
 script will say so rather than guess.
 
 Usage:
@@ -34,7 +54,7 @@ import base64
 import urllib.request
 import urllib.error
 
-SUPPORTED_TYPES = ["Reading", "Close Reading", "Literature Response"]
+SUPPORTED_TYPES = ["Reading", "Close Reading", "Literature Response", "Language", "Discourse Deep Dive"]
 
 SYSTEM_PROMPT = f"""You extract structured fields from a K-12 Knowledge \
 curriculum lesson document (a Teacher Guide excerpt), to populate a fixed \
@@ -51,6 +71,10 @@ STEP 2 -- Extract fields for the schema below. Ground rules:
 - If a field genuinely isn't present in the source lesson, use "" or [] --
   never invent content, and never leave a bracketed placeholder like
   "[insert here]" in the output.
+- essential_question is commonly absent in Language lessons -- if the
+  lesson opens with only a Teaching Point and no "How/What/Why..."
+  question, use "" rather than inventing one or repeating the Teaching
+  Point as a question.
 - Only extract material meant to be DISPLAYED to students (essential
   question, teaching point, vocabulary, read directions, prompts, charts
   meant to be shown). Exclude teacher-only facilitation notes such as
@@ -104,7 +128,13 @@ Schema:
       }},
       "mentor_prompt": "string, empty if none (Literature Response only)",
       "claims_to_evaluate": ["string", ...],
-      "resource_unavailable": "string describing an unreprinted referenced resource, empty if none"
+      "resource_unavailable": "string describing an unreprinted referenced resource, empty if none",
+      "planner_sections": [
+        {{"type": "text", "label": "string, empty if none", "content": "string"}},
+        {{"type": "list", "label": "string, empty if none", "items": ["string", ...]}},
+        {{"type": "table", "label": "string, empty if none", "columns": ["string", ...],
+          "rows": [["string or [\"string\", ...] for a bulleted list within that cell", ...], ...]}}
+      ]
     }}
   ],
 
@@ -115,9 +145,22 @@ Schema:
   }},
   "shared_analysis": null,
 
+  "application": {{
+    "read_directions": "string, empty if none",
+    "vocabulary": [{{"word": "string", "definition": "string", "icon_concept": "string"}}],
+    "chart": {{"type": "reference" or "blank", "columns": ["string","string"], "rows": [[...]]}},
+    "planner_sections": []
+  }},
+
+  "evidence_collection": {{
+    "intro_text": "string, empty if none (Discourse Deep Dive only)",
+    "prompts": ["string", ...]
+  }},
+
   "quick_write_prompt": "string, empty if not present (Reading only)",
   "discourse_club_prompt": "string, empty if not present (Reading only)",
-  "whole_class_discourse_prompt": "string, empty if not present (Reading only)",
+  "whole_class_discourse_prompt": "string, empty if not present (Reading only, single prompt)",
+  "whole_class_discourse_prompts": ["string", ...],
 
   "literature_response_prompt": "string, empty if not present (Literature Response only)",
   "writers_circle": {{"focus_points": ["string", ...]}},
@@ -128,7 +171,25 @@ Schema:
 Set independent_reading to null if the lesson uses shared_analysis instead,
 and vice versa -- exactly one of the two should be non-null for a Reading
 lesson. Reading-only fields should be empty/null for a Literature Response
-lesson and vice versa."""
+lesson and vice versa. application is Language-only (Language's own
+independent-work section, labeled "Application" rather than "Independent
+Reading" in the source -- same shape as independent_reading, kept as a
+separate field rather than reused so a Language lesson's own field name
+maps directly to its own slide label). evidence_collection is Discourse
+Deep Dive-only. whole_class_discourse_prompt (singular) stays Reading-only
+as before; whole_class_discourse_prompts (plural, a list) is for Discourse
+Deep Dive lessons that pose more than one numbered prompt in the same
+Whole-Class Discourse section -- use whichever of the two actually matches
+what the lesson shows, never populate both.
+
+planner_sections (nested under a section, or under application) is for
+reference charts and structured content that doesn't fit the single fixed
+"chart" shape above -- e.g. a 3-column suffix reference chart, or a chart
+where each cell is itself a bulleted list of multiple items rather than
+one plain string. Prefer the plain "chart" field when content is a simple
+flat 2-column table; use planner_sections when it isn't. Most sections
+will have an empty planner_sections list -- only populate it for content
+that genuinely needs the extra structure."""
 
 
 def _build_content_block(lesson_path: str):
