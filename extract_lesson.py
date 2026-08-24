@@ -71,6 +71,15 @@ STEP 2 -- Extract fields for the schema below. Ground rules:
 - If a field genuinely isn't present in the source lesson, use "" or [] --
   never invent content, and never leave a bracketed placeholder like
   "[insert here]" in the output.
+- Preserve underlining. The source PDF is sent to you as a real document
+  (not flattened text) specifically so you can see formatting like this --
+  when text is underlined in the source (most commonly book/text titles,
+  e.g. "Finding Langston"), wrap that exact span in <u>...</u> tags within
+  whichever string field it appears in (essential_question,
+  teaching_point, vocabulary definitions, prompts, read_directions, etc.).
+  Do not add <u> tags to text that isn't actually underlined in the
+  source, and do not use any other markup or formatting tags -- <u> is
+  the only one the generators know how to render.
 - essential_question is commonly absent in Language lessons -- if the
   lesson opens with only a Teaching Point and no "How/What/Why..."
   question, use "" rather than inventing one or repeating the Teaching
