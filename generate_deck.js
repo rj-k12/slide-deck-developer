@@ -15,6 +15,10 @@ const TITLE_PURPLE = "382DB0";
 const CREAM_YELLOW = "FFF3CB";
 const PEACH = "FFDBC5";
 const MUTED = "6B6478";
+// Confirmed from the template's Discourse Clubs/Quick Write/Whole-Class
+// Discourse slides specifically -- their card description text is this
+// color, not MUTED (which was being used before and doesn't match).
+const DETAIL_DESC_COLOR = "110045";
 const VIOLET = "9343F6";
 const TABLE_BORDER = "DCD6EE";
 const TAN_BG = "FBE8AB";
@@ -90,7 +94,10 @@ function slideTitle(slide, title, onDark) {
 // slide (Quick Write & Discourse Clubs together), which is correct as-is.
 function detailPromptSlide(s, opts) {
   const { cardColor, accentColor, iconPath, cardTitle, description, promptLabel, promptText, boxBorderColor } = opts;
-  const cardX = 0.7, cardY = 1.9, cardW = 3.0, cardH = 3.85;
+  // Position/size confirmed directly from the template's Discourse Clubs
+  // slide -- was previously an approximation (0.7/1.9/3.0/3.85) that ran
+  // noticeably larger and differently positioned than the real card.
+  const cardX = 0.521, cardY = 1.458, cardW = 2.292, cardH = 2.917;
   // Radius confirmed from template (Discourse Clubs / Quick Write detail
   // slides): adj=5454 on the icon card -> ~0.167in at this file's scale.
   // Was 0.08, visibly too subtle.
@@ -98,8 +105,16 @@ function detailPromptSlide(s, opts) {
   if (iconPath) {
     s.addImage({ path: iconPath, x: cardX + 0.25, y: cardY + 0.3, w: 0.65, h: 0.65 });
   }
-  s.addText(cardTitle, { x: cardX + 0.25, y: cardY + 1.15, w: cardW - 0.5, h: 0.65, fontFace: "Arial", fontSize: 21.5, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
-  s.addText(description, { x: cardX + 0.25, y: cardY + 1.85, w: cardW - 0.5, h: cardH - 2.05, fontFace: "Arial", fontSize: 17.5, color: MUTED, margin: 0, valign: "top" });
+  // Colors confirmed directly from the template across all three of
+  // these slides (Discourse Clubs, Quick Write, Whole-Class Discourse):
+  // card title is PURPLE (was NAVY_INK), description is DETAIL_DESC_COLOR
+  // (was MUTED, which was visibly too gray/washed out compared to the
+  // template's solid dark-navy description text).
+  // Title now wraps to two lines at the corrected (narrower) card width
+  // -- description's y-offset increased from the card's own top edge to
+  // give it clearance, rather than the two visibly overlapping.
+  s.addText(cardTitle, { x: cardX + 0.25, y: cardY + 1.15, w: cardW - 0.5, h: 0.75, fontFace: "Arial", fontSize: 21.5, bold: true, color: PURPLE, margin: 0, valign: "top" });
+  s.addText(description, { x: cardX + 0.25, y: cardY + 2.05, w: cardW - 0.5, h: cardH - 2.25, fontFace: "Arial", fontSize: 17.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
 
   const boxX = cardX + cardW + 0.45, boxW = PAGE_W - boxX - 0.55;
   s.addShape("roundRect", { x: boxX, y: cardY, w: 0.08, h: cardH, rectRadius: 0.04, fill: { color: accentColor }, line: { type: "none" } });
