@@ -93,11 +93,22 @@ STEP 2 -- Extract fields for the schema below. Ground rules:
   entry AND every word introduced inline with its own definition sentence
   in the lesson narrative (e.g. "'Internal' means ..."), even if it never
   appears in a table. Do not duplicate a word within the same list.
-- Charts: distinguish a REFERENCE chart (the lesson shows it fully filled
-  in as a worked example, e.g. "Sample Launch Chart") from a BLANK
-  student-fill-in chart (the lesson gives column headers only, meant for
-  students to complete). Reproduce reference charts with their real
-  content in "rows"; leave blank charts with "rows": [].
+- Charts: per the official "Knowledge Slide Template Outlines" doc,
+  confirmed by Ashley McQuiller's review comment: "all reading note
+  charts should have headers on columns only with blank rows following
+  for activity/fill-in charts." This means: if the lesson shows a chart
+  labeled or described as a "Sample [X] Chart" -- fully filled in with
+  worked-example answers -- that filled-in content is TEACHER-FACING
+  background/differentiation material, showing the teacher what a good
+  answer looks like. It is NOT what belongs on the student-facing slide.
+  Extract that chart as a BLANK chart instead: real "columns" (the real
+  header labels), but "rows": [] -- do not reproduce the sample answers.
+  Only extract a chart WITH its real row content in "rows" when the
+  lesson's own narrative makes clear the chart is meant to be displayed
+  already-completed (e.g., a reference chart used for direct instruction
+  or comparison, not a fill-in activity) -- this is the less common case;
+  when in doubt, treat a filled-in chart as a sample and extract it
+  blank.
 - "Lesson Vocabulary Review" is NOT all vocabulary from the lesson -- it
   is ONLY the words that get explicitly repeated in the Closing section's
   own recap. If Closing doesn't repeat any vocabulary, use [].

@@ -243,7 +243,16 @@ function addChart(slide, chart, x, y, w, h) {
   for (let r = 0; r < nRows; r++) {
     const zebra = r % 2 === 1;
     const cells = chart.columns.map((_, ci) => {
-      const text = (chart.rows && chart.rows[r]) ? chart.rows[r][ci] : "";
+      const cell = (chart.rows && chart.rows[r]) ? chart.rows[r][ci] : "";
+      // A cell can be a plain string, or an array of strings if the
+      // source lesson's own chart content is bulleted (Ashley's review
+      // question: "does the bulleted formatting need to carry over from
+      // the lesson?" -- yes, when it's genuinely there). Matches the
+      // same array-cell pattern already proven in
+      // generate_deck_language.js's planner table renderer.
+      const text = Array.isArray(cell)
+        ? cell.map(item => ({ text: item, options: { bullet: { code: "2022" }, breakLine: true } }))
+        : cell;
       return { text, options: { color: BODY, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: zebra ? PEACH : WHITE }, border: bodyBorder } };
     });
     bodyRows.push(cells);
