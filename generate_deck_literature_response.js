@@ -206,14 +206,14 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   const rowTop = 2.15, rowBottom = PAGE_H - 0.8;
   const rowH = rowBottom - rowTop;
 
-  s.addShape("rect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.essential_question) {
     s.addText(parseInlineMarkup(lesson.essential_question), { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
   }
 
-  s.addShape("rect", { x: 0.55, y: rowTop, w: colW, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: rowTop, w: colW, h: 0.05, rectRadius: 0.025, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: WHITE }, line: { color: TP_BORDER_ORANGE, width: 1.5 } });
   s.addText("Teaching Point", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
@@ -221,7 +221,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   }
 
   const lgX = 0.55 + colW + colGap;
-  s.addShape("rect", { x: lgX, y: rowTop, w: colW, h: 0.05, fill: { color: PURPLE }, line: { type: "none" } });
+  s.addShape("roundRect", { x: lgX, y: rowTop, w: colW, h: 0.05, rectRadius: 0.025, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: lgX, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: "F4F2FC" }, line: { color: LG_BORDER_LIGHT_PURPLE, width: 1, dashType: "dash" } });
   s.addText("Language Goal", { x: lgX + 0.2, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.language_goal) {
@@ -334,12 +334,12 @@ if (lesson.literature_response_prompt) {
 {
   const s = pres.addSlide();
   slideTitle(s, "Closing", false);
-  s.addShape("rect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
   s.addText(parseInlineMarkup(lesson.essential_question), { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
 
-  s.addShape("rect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, rectRadius: 0.025, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: 2.8, w: PAGE_W - 1.1, h: 2.4, rectRadius: 0.113, fill: { color: WHITE }, line: { color: TP_BORDER_CLOSING, width: 1 } });
   s.addText("Teaching Point", { x: 0.75, y: 3.0, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });

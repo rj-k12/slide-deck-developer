@@ -102,7 +102,7 @@ function detailPromptSlide(s, opts) {
   s.addText(description, { x: cardX + 0.25, y: cardY + 1.85, w: cardW - 0.5, h: cardH - 2.05, fontFace: "Arial", fontSize: 17.5, color: MUTED, margin: 0, valign: "top" });
 
   const boxX = cardX + cardW + 0.45, boxW = PAGE_W - boxX - 0.55;
-  s.addShape("rect", { x: boxX, y: cardY, w: 0.08, h: cardH, fill: { color: accentColor }, line: { type: "none" } });
+  s.addShape("roundRect", { x: boxX, y: cardY, w: 0.08, h: cardH, rectRadius: 0.04, fill: { color: accentColor }, line: { type: "none" } });
   // Radius confirmed from template: adj=4285 on the white prompt box ->
   // ~0.167in, essentially the same absolute radius as the card above.
   // Border color: defaults to DETAIL_BOX_BORDER (pale pink), confirmed
@@ -306,7 +306,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   // template: adj=8333 on an h=1.25in box at this file's 10"-reference
   // scale -> radius = 0.08333 * 1.25 * (PAGE_W/10) = ~0.139in. No border
   // in the template -- curved corners only.
-  s.addShape("rect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.essential_question) {
@@ -320,7 +320,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   // target one consistent absolute corner radius across box sizes).
   // Border color FFAB7B (orange) confirmed directly from the template --
   // this was BLUE_PALE before, which didn't match anything in the source.
-  s.addShape("rect", { x: 0.55, y: rowTop, w: colW, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: rowTop, w: colW, h: 0.05, rectRadius: 0.025, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: WHITE }, line: { color: TP_BORDER_ORANGE, width: 1.5 } });
   s.addText("Teaching Point", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
@@ -331,7 +331,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   // above. Border color is NOT independently confirmed -- see
   // LG_BORDER_LIGHT_PURPLE's definition above.
   const lgX = 0.55 + colW + colGap;
-  s.addShape("rect", { x: lgX, y: rowTop, w: colW, h: 0.05, fill: { color: PURPLE }, line: { type: "none" } });
+  s.addShape("roundRect", { x: lgX, y: rowTop, w: colW, h: 0.05, rectRadius: 0.025, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: lgX, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: "F4F2FC" }, line: { color: LG_BORDER_LIGHT_PURPLE, width: 1, dashType: "dash" } });
   s.addText("Language Goal", { x: lgX + 0.2, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.language_goal) {
@@ -554,7 +554,7 @@ if (lesson.whole_class_discourse_prompt) {
 {
   const s = pres.addSlide();
   slideTitle(s, "Closing", false);
-  s.addShape("rect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
   s.addText(parseInlineMarkup(lesson.essential_question), { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
@@ -563,7 +563,7 @@ if (lesson.whole_class_discourse_prompt) {
   // slide specifically -- this box is full-width here (no Language Goal
   // column), and uses a lighter border (DCD6EE) than the split-column
   // version on the EQ/TP/LG slide (which uses orange).
-  s.addShape("rect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, rectRadius: 0.025, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: 2.8, w: PAGE_W - 1.1, h: 2.4, rectRadius: 0.113, fill: { color: WHITE }, line: { color: TP_BORDER_CLOSING, width: 1 } });
   s.addText("Teaching Point", { x: 0.75, y: 3.0, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });

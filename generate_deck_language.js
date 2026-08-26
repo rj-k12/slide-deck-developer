@@ -290,7 +290,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
 
   if (hasEQ) {
     addHeaderGradient(s);
-    s.addShape("rect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
+    s.addShape("roundRect", { x: 0.55, y: 0.55, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
     s.addShape("roundRect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
     s.addText("Essential Question", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
     s.addText(lesson.essential_question, { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
@@ -298,7 +298,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
 
   const tpTop = hasEQ ? 2.15 : 0.75;
   const tpBottom = PAGE_H - 0.8;
-  s.addShape("rect", { x: 0.55, y: tpTop, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: tpTop, w: PAGE_W - 1.1, h: 0.05, rectRadius: 0.025, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: tpTop + 0.05, w: PAGE_W - 1.1, h: tpBottom - tpTop - 0.05, rectRadius: hasEQ ? 0.113 : 0.139, fill: { color: WHITE }, line: { color: hasEQ ? TP_BORDER_CLOSING : TP_BORDER_ORANGE, width: hasEQ ? 1 : 1.5 } });
   s.addText("Teaching Point", { x: 0.75, y: tpTop + 0.25, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
@@ -435,14 +435,14 @@ if (lesson.whole_class_discourse_prompt) {
   let tpTop = 1.15;
 
   if (hasEQ) {
-    s.addShape("rect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
+    s.addShape("roundRect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
     s.addShape("roundRect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
     s.addText("Essential Question", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
     s.addText(lesson.essential_question, { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
     tpTop = 2.75;
   }
 
-  s.addShape("rect", { x: 0.55, y: tpTop, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
+  s.addShape("roundRect", { x: 0.55, y: tpTop, w: PAGE_W - 1.1, h: 0.05, rectRadius: 0.025, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: tpTop + 0.05, w: PAGE_W - 1.1, h: PAGE_H - tpTop - 0.85, rectRadius: 0.113, fill: { color: WHITE }, line: { color: TP_BORDER_CLOSING, width: 1 } });
   s.addText("Teaching Point", { x: 0.75, y: tpTop + 0.25, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   s.addText(lesson.teaching_point, { x: 0.75, y: tpTop + 0.65, w: PAGE_W - 1.5, h: PAGE_H - tpTop - 1.5, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
