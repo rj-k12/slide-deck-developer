@@ -96,19 +96,22 @@ STEP 2 -- Extract fields for the schema below. Ground rules:
 - Charts: per the official "Knowledge Slide Template Outlines" doc,
   confirmed by Ashley McQuiller's review comment: "all reading note
   charts should have headers on columns only with blank rows following
-  for activity/fill-in charts." This means: if the lesson shows a chart
-  labeled or described as a "Sample [X] Chart" -- fully filled in with
-  worked-example answers -- that filled-in content is TEACHER-FACING
-  background/differentiation material, showing the teacher what a good
-  answer looks like. It is NOT what belongs on the student-facing slide.
-  Extract that chart as a BLANK chart instead: real "columns" (the real
-  header labels), but "rows": [] -- do not reproduce the sample answers.
-  Only extract a chart WITH its real row content in "rows" when the
-  lesson's own narrative makes clear the chart is meant to be displayed
-  already-completed (e.g., a reference chart used for direct instruction
-  or comparison, not a fill-in activity) -- this is the less common case;
-  when in doubt, treat a filled-in chart as a sample and extract it
-  blank.
+  for activity/fill-in charts." Confirmed directly against the real
+  template for THREE separate chart-bearing slide types (Launch,
+  Independent Reading, Shared Analysis): every one of them is headers
+  only, with the body rows completely empty in the template itself. So
+  treat blank as the DEFAULT for any chart in a Launch, Independent
+  Reading, or Shared Analysis section: extract the real "columns" (the
+  real header labels), but leave "rows": [] -- do not reproduce any
+  filled-in content that appears in the lesson's own script for these
+  charts, even if it isn't explicitly labeled "Sample" (a lesson may show
+  worked-example answers inline without using that word, and it's still
+  TEACHER-FACING background material, not what belongs on the
+  student-facing slide). Only extract a chart WITH real row content in
+  "rows" if the lesson's own narrative makes UNMISTAKABLY clear that
+  chart is meant to be displayed already-completed for direct instruction
+  or comparison, not filled in live -- this is the rare exception, not
+  the default; if you're unsure, extract it blank.
 - "Lesson Vocabulary Review" is NOT all vocabulary from the lesson -- it
   is ONLY the words that get explicitly repeated in the Closing section's
   own recap. If Closing doesn't repeat any vocabulary, use [].
