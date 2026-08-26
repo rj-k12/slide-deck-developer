@@ -34,7 +34,11 @@ function unitHeader() {
 }
 function footer(slide, pageNum, onDark) {
   const c = onDark ? "C9BEEB" : MUTED;
-  slide.addText(unitHeader(), { x: 0.5, y: PAGE_H - 0.4, w: PAGE_W - 1.5, h: 0.3, fontFace: "Arial", fontSize: 12, color: c, align: "left", margin: 0 });
+  // Confirmed directly from the template's raw XML: the unit-header text
+  // on the left is italic (i="1"), the page number on the right is not
+  // (i="0") -- same fix applied to generate_deck.js and
+  // generate_deck_literature_response.js for consistency.
+  slide.addText(unitHeader(), { x: 0.5, y: PAGE_H - 0.4, w: PAGE_W - 1.5, h: 0.3, fontFace: "Arial", fontSize: 12, italic: true, color: c, align: "left", margin: 0 });
   slide.addText(String(pageNum), { x: PAGE_W - 0.9, y: PAGE_H - 0.4, w: 0.4, h: 0.3, fontFace: "Arial", fontSize: 12, color: c, align: "right", margin: 0 });
 }
 function slideTitle(slide, title, onDark) {
@@ -64,19 +68,38 @@ function iconPathFor(word) {
   const p = require("path").join(VOCAB_ICON_DIR, `${safe}.png`);
   return fs.existsSync(p) ? p : null;
 }
+// Estimates how many wrapped lines a definition needs at vocabBlock's
+// fontSize 21.5 in a card of width colW, so card/row height can be sized
+// to actually fit the text -- PowerPoint text boxes don't clip
+// overflowing text, they just spill past the box (and the card behind
+// it), which is exactly what happened with a genuinely long definition
+// ("process": 5 wrapped lines, but the old fixed 1.55in box only fit
+// ~4 -- the 5th line visibly overlapped the card's rounded border).
+function estimateDefinitionLines(definition, colW) {
+  const charsPerLine = (colW - 0.4) * 5.4; // empirically tuned for Arial 21.5pt
+  return Math.max(1, Math.ceil(definition.length / charsPerLine));
+}
 function vocabBlock(slide, words, x, y, w, onDark) {
   const colW = (w - 0.3) / 2;
   const cardBg = onDark ? WHITE : PEACH;
-  words.forEach((item, i) => {
-    const col = i % 2, row = Math.floor(i / 2);
-    const bx = x + col * (colW + 0.3), by = y + row * 2.85;
-    slide.addShape("roundRect", { x: bx, y: by, w: colW, h: 2.7, rectRadius: 0.20, fill: { color: cardBg }, line: onDark ? { color: CORAL, width: 1 } : { type: "none" } });
-    const iconPath = iconPathFor(item.word);
-    if (iconPath) {
-      slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
-    }
-    slide.addText(item.word, { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
-    slide.addText(item.definition, { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: 1.55, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+  const rows = chunk(words, 2);
+  let cursorY = y;
+  rows.forEach(rowWords => {
+    // Row height = whatever the tallest card in this row actually needs
+    // (both cards in a row must match height), floored at the original
+    // 2.7in default so short definitions keep the established look.
+    const rowH = Math.max(2.7, ...rowWords.map(item => 1.0 + estimateDefinitionLines(item.definition, colW) * 0.34 + 0.25));
+    rowWords.forEach((item, ci) => {
+      const bx = x + ci * (colW + 0.3), by = cursorY;
+      slide.addShape("roundRect", { x: bx, y: by, w: colW, h: rowH, rectRadius: 0.20, fill: { color: cardBg }, line: onDark ? { color: CORAL, width: 1 } : { type: "none" } });
+      const iconPath = iconPathFor(item.word);
+      if (iconPath) {
+        slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
+      }
+      slide.addText(item.word, { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
+      slide.addText(item.definition, { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: rowH - 1.15, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+    });
+    cursorY += rowH + 0.15;
   });
 }
 

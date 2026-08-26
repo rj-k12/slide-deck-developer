@@ -56,7 +56,13 @@ function unitHeader() {
 }
 function footer(slide, pageNum, onDark) {
   const c = onDark ? "C9BEEB" : MUTED;
-  slide.addText(unitHeader(), { x: 0.5, y: PAGE_H - 0.4, w: PAGE_W - 1.5, h: 0.3, fontFace: "Arial", fontSize: 12, color: c, align: "left", margin: 0 });
+  // Confirmed directly from the template's raw XML: the unit-header text
+  // on the left is italic (i="1"), the page number on the right is not
+  // (i="0") -- Ashley's comment ("shouldn't be italicized") led to
+  // removing italic from here entirely; RJ's decision was to trust the
+  // template's actual formatting over that comment, so it's back, but
+  // ONLY on the left text, matching the template's real asymmetry.
+  slide.addText(unitHeader(), { x: 0.5, y: PAGE_H - 0.4, w: PAGE_W - 1.5, h: 0.3, fontFace: "Arial", fontSize: 12, italic: true, color: c, align: "left", margin: 0 });
   slide.addText(String(pageNum), { x: PAGE_W - 0.9, y: PAGE_H - 0.4, w: 0.4, h: 0.3, fontFace: "Arial", fontSize: 12, color: c, align: "right", margin: 0 });
 }
 function slideTitle(slide, title, onDark) {
