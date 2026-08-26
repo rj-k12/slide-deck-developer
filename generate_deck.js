@@ -397,6 +397,25 @@ renderGroupedSections(
       s.addText(parseInlineMarkup(section.read_directions), { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
       footer(s, pageNum++, false);
     }
+    // Was a genuine gap, not a gradient-placement question: this
+    // generator never rendered resource_unavailable at all, even though
+    // extract_lesson.py's schema already supports it generically per
+    // section (matching generate_deck_literature_response.js's existing
+    // "Launch Resource" pattern exactly). The real template's slide5.xml
+    // ("Engage | Resource") is the only confirmed gradient+resource
+    // combination across all 18 template slides -- gradient is applied
+    // here only when section_name is "Engage" for that reason; other
+    // section names still render this slide (the field itself isn't
+    // Engage-specific), just without the gradient, since that combination
+    // was never confirmed against the template.
+    if (section.resource_unavailable) {
+      const s = pres.addSlide();
+      if (section.section_name === "Engage") addHeaderGradient(s);
+      slideTitle(s, `${section.section_name} Resource`, false);
+      s.addShape("roundRect", { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1.1, rectRadius: 0.08, fill: { color: "FEF3C7" }, line: { color: "D97706", width: 1 } });
+      s.addText([{ text: "\u26a0 Needs manual follow-up: " }, ...parseInlineMarkup(section.resource_unavailable)], { x: 0.8, y: 1.65, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 16, italic: true, color: "92400E", margin: 0, valign: "top" });
+      footer(s, pageNum++, false);
+    }
   },
   section => {
     if (section.vocabulary && section.vocabulary.length) {
