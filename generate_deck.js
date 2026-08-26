@@ -109,7 +109,7 @@ function detailPromptSlide(s, opts) {
   // template file doesn't reflect.
   s.addShape("roundRect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, rectRadius: 0.167, fill: { color: WHITE }, line: { color: boxBorderColor || DETAIL_BOX_BORDER, width: 1 } });
   s.addText(promptLabel, { x: boxX + 0.4, y: cardY + 0.35, w: boxW - 0.8, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: accentColor, margin: 0 });
-  s.addText(promptText, { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText(parseInlineMarkup(promptText), { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 }
 function chunk(arr, size) {
   const out = [];
@@ -123,17 +123,54 @@ function chunk(arr, size) {
 // one plain string -- so this finds a "page(s) N" or "page(s) N-N"
 // pattern within the string and bolds just that substring, returning a
 // run array for addText rather than a plain string.
-function boldPageNumbers(text) {
-  const re = /\bpages?\s+\d+(?:[\u2013-]\d+)?\b/gi;
+// Catherine confirmed (Google Slides comment thread on Lesson 6b) that
+// underlined text in the source PDF -- most commonly book/text titles
+// like "Finding Langston" -- should be preserved when it shows up in
+// extracted content. extract_lesson.py wraps underlined spans in
+// <u>...</u> within whatever field they appear in; this turns a string
+// containing that markup into a run array pptxgenjs can actually render
+// with real underline formatting. Originally built for
+// generate_deck_literature_response.js; ported here unchanged since the
+// same underline-preservation need applies to Reading/Close Reading
+// content (Reading lessons reference "Finding Langston" constantly).
+//
+// Supersedes the old boldPageNumbers() -- folds bold-page-number
+// detection into the same single pass, since a string can plausibly
+// need both ("read pages 46-50 of <u>Finding Langston</u>").
+function parseInlineMarkup(text) {
+  if (!text) return [{ text: text || "" }];
   const parts = [];
+  const underlineRe = /<u>(.*?)<\/u>/g;
   let lastIndex = 0, m;
-  while ((m = re.exec(text)) !== null) {
+  while ((m = underlineRe.exec(text)) !== null) {
     if (m.index > lastIndex) parts.push({ text: text.slice(lastIndex, m.index) });
-    parts.push({ text: m[0], options: { bold: true } });
+    parts.push({ text: m[1], options: { underline: true } });
     lastIndex = m.index + m[0].length;
   }
   if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex) });
-  return parts.length ? parts : [{ text }];
+
+  const pageNumRe = /\bpages?\s+\d+(?:[\u2013-]\d+)?\b/gi;
+  const expanded = [];
+  parts.forEach(part => {
+    if (part.options && part.options.underline) {
+      expanded.push(part);
+      return;
+    }
+    let li = 0, mm, found = false;
+    pageNumRe.lastIndex = 0;
+    while ((mm = pageNumRe.exec(part.text)) !== null) {
+      found = true;
+      if (mm.index > li) expanded.push({ text: part.text.slice(li, mm.index) });
+      expanded.push({ text: mm[0], options: { bold: true } });
+      li = mm.index + mm[0].length;
+    }
+    if (found) {
+      if (li < part.text.length) expanded.push({ text: part.text.slice(li) });
+    } else {
+      expanded.push(part);
+    }
+  });
+  return expanded.length ? expanded : [{ text }];
 }
 
 // Vocabulary card grid, matching the template's 2-col layout with the
@@ -144,22 +181,41 @@ function iconPathFor(word) {
   const p = require("path").join(VOCAB_ICON_DIR, `${safe}.png`);
   return fs.existsSync(p) ? p : null;
 }
+// Estimates how many wrapped lines a definition needs at vocabBlock's
+// fontSize 21.5 in a card of width colW, so card/row height can be sized
+// to actually fit the text -- PowerPoint text boxes don't clip
+// overflowing text, they just spill past the box (and the card behind
+// it). Found via a real long definition in a Discourse Deep Dive lesson
+// ("process": needed 5 wrapped lines, but the old fixed 1.55in box only
+// fit ~4 -- the 5th line visibly overlapped the card's rounded border).
+function estimateDefinitionLines(definition, colW) {
+  const charsPerLine = (colW - 0.4) * 5.4; // empirically tuned for Arial 21.5pt
+  return Math.max(1, Math.ceil(definition.length / charsPerLine));
+}
 function vocabBlock(slide, words, x, y, w, onDark) {
   const colW = (w - 0.3) / 2;
   const cardBg = onDark ? WHITE : PEACH;
-  words.forEach((item, i) => {
-    const col = i % 2, row = Math.floor(i / 2);
-    const bx = x + col * (colW + 0.3), by = y + row * 2.85;
+  const rows = chunk(words, 2);
+  let cursorY = y;
+  rows.forEach(rowWords => {
+    // Row height = whatever the tallest card in this row actually needs
+    // (both cards in a row must match height), floored at the original
+    // 2.7in default so short definitions keep the established look.
     // Radius confirmed from template (Engage Vocabulary slide): adj=4000
     // on a w=4.31/h=3.80 card at this file's scale -> ~0.20in. Was 0.06,
     // visibly too subtle compared to the template.
-    slide.addShape("roundRect", { x: bx, y: by, w: colW, h: 2.7, rectRadius: 0.20, fill: { color: cardBg }, line: onDark ? { color: CORAL, width: 1 } : { type: "none" } });
-    const iconPath = iconPathFor(item.word);
-    if (iconPath) {
-      slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
-    }
-    slide.addText(item.word, { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
-    slide.addText(item.definition, { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: 1.55, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+    const rowH = Math.max(2.7, ...rowWords.map(item => 1.0 + estimateDefinitionLines(item.definition, colW) * 0.34 + 0.25));
+    rowWords.forEach((item, ci) => {
+      const bx = x + ci * (colW + 0.3), by = cursorY;
+      slide.addShape("roundRect", { x: bx, y: by, w: colW, h: rowH, rectRadius: 0.20, fill: { color: cardBg }, line: onDark ? { color: CORAL, width: 1 } : { type: "none" } });
+      const iconPath = iconPathFor(item.word);
+      if (iconPath) {
+        slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
+      }
+      slide.addText(parseInlineMarkup(item.word), { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
+      slide.addText(parseInlineMarkup(item.definition), { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: rowH - 1.15, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+    });
+    cursorY += rowH + 0.15;
   });
 }
 
@@ -239,7 +295,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addShape("roundRect", { x: 0.61, y: 0.55, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 0.7, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.essential_question) {
-    s.addText(lesson.essential_question, { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(lesson.essential_question), { x: 0.85, y: 1.05, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
   }
 
   // Teaching Point box (left column). Corner radius confirmed from
@@ -253,7 +309,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addShape("roundRect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: WHITE }, line: { color: TP_BORDER_ORANGE, width: 1.5 } });
   s.addText("Teaching Point", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
-    s.addText(lesson.teaching_point, { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, color: BODY, margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, color: BODY, margin: 0, valign: "top" });
   }
 
   // Language Goal box (right column). Corner radius same 0.139in as
@@ -264,7 +320,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addShape("roundRect", { x: lgX, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: "F4F2FC" }, line: { color: LG_BORDER_LIGHT_PURPLE, width: 1, dashType: "dash" } });
   s.addText("Language Goal", { x: lgX + 0.2, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0 });
   if (lesson.language_goal) {
-    s.addText(lesson.language_goal, { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, italic: true, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(lesson.language_goal), { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, italic: true, color: NAVY_INK, margin: 0, valign: "top" });
   } else {
     s.addText("Not specified in this lesson's source material.", { x: lgX + 0.2, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 16, italic: true, color: MUTED, margin: 0, valign: "top" });
   }
@@ -304,36 +360,57 @@ function addDecorativeBg(slide) {
 // at the very top of the slide, fading to white by the bottom edge of
 // the 1.26"-tall band. header_gradient.png is pre-rendered in that final
 // (post-rotation) direction already, so no rotation is needed here.
+// Catherine's explicit rule (Slack): "vocabulary for a section should
+// always be the last slide of that section" -- see
+// generate_deck_literature_response.js's identical fix for the full
+// reasoning (same rule, same underlying problem: extract_lesson.py's
+// extraction order tends to mirror the source document's own scattered
+// inline definition order, not the order slides should render in).
+function renderGroupedSections(sections, renderNonVocab, renderVocab) {
+  const names = [];
+  (sections || []).forEach(s => { if (!names.includes(s.section_name)) names.push(s.section_name); });
+  names.forEach(name => {
+    const group = (sections || []).filter(s => s.section_name === name);
+    group.forEach(section => renderNonVocab(section));
+    group.forEach(section => renderVocab(section));
+  });
+}
+
 let pageNum = 3;
-(lesson.sections || []).forEach(section => {
-  if (section.vocabulary && section.vocabulary.length) {
-    chunk(section.vocabulary, 4).forEach((words, i) => {
+renderGroupedSections(
+  lesson.sections,
+  section => {
+    if (section.chart) {
       const s = pres.addSlide();
-      if (section.section_name === "Engage") addHeaderGradient(s);
-      if (section.section_name === "Launch") addDecorativeBg(s);
-      slideTitle(s, `${section.section_name} Vocabulary${i > 0 ? " (continued)" : ""}`, false);
-      vocabBlock(s, words, 0.55, 1.25, PAGE_W - 1.1, false);
+      if (section.section_name === "Launch") addHeaderGradient(s);
+      slideTitle(s, `${section.section_name} Chart`, false);
+      let y = 1.15;
+      if (section.read_directions) {
+        s.addText(parseInlineMarkup(section.read_directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+        y += 0.5;
+      }
+      addChart(s, section.chart, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
       footer(s, pageNum++, false);
-    });
-  }
-  if (section.chart) {
-    const s = pres.addSlide();
-    if (section.section_name === "Launch") addHeaderGradient(s);
-    slideTitle(s, `${section.section_name} Chart`, false);
-    let y = 1.15;
-    if (section.read_directions) {
-      s.addText(boldPageNumbers(section.read_directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
-      y += 0.5;
+    } else if (section.read_directions) {
+      const s = pres.addSlide();
+      slideTitle(s, `${section.section_name} Read Directions`, false);
+      s.addText(parseInlineMarkup(section.read_directions), { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+      footer(s, pageNum++, false);
     }
-    addChart(s, section.chart, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
-    footer(s, pageNum++, false);
-  } else if (section.read_directions) {
-    const s = pres.addSlide();
-    slideTitle(s, `${section.section_name} Read Directions`, false);
-    s.addText(boldPageNumbers(section.read_directions), { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
-    footer(s, pageNum++, false);
+  },
+  section => {
+    if (section.vocabulary && section.vocabulary.length) {
+      chunk(section.vocabulary, 4).forEach((words, i) => {
+        const s = pres.addSlide();
+        if (section.section_name === "Engage") addHeaderGradient(s);
+        if (section.section_name === "Launch") addDecorativeBg(s);
+        slideTitle(s, `${section.section_name} Vocabulary${i > 0 ? " (continued)" : ""}`, false);
+        vocabBlock(s, words, 0.55, 1.25, PAGE_W - 1.1, false);
+        footer(s, pageNum++, false);
+      });
+    }
   }
-});
+);
 
 // ===== Slide: Independent Reading OR Shared Analysis (two-column layout:
 // text on the left, chart on the right, matching the template exactly) =====
@@ -346,11 +423,11 @@ if (ir || sa) {
   const leftW = 6.6;
   let y = 1.1;
   s.addText("Teaching Point", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
-  s.addText(lesson.teaching_point, { x: 0.55, y: y + 0.4, w: leftW, h: 1.15, fontFace: "Arial", fontSize: 16, color: BODY, margin: 0, valign: "top" });
+  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: y + 0.4, w: leftW, h: 1.15, fontFace: "Arial", fontSize: 16, color: BODY, margin: 0, valign: "top" });
   y += 1.65;
   if (block.read_directions) {
     s.addShape("roundRect", { x: 0.55, y, w: leftW, h: 1.0, rectRadius: 0.06, fill: { color: TAN_BG }, line: { type: "none" } });
-    s.addText(boldPageNumbers(block.read_directions), { x: 0.75, y: y + 0.1, w: leftW - 0.4, h: 0.8, fontFace: "Arial", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(block.read_directions), { x: 0.75, y: y + 0.1, w: leftW - 0.4, h: 0.8, fontFace: "Arial", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
     y += 1.15;
   }
   if (block.vocabulary && block.vocabulary.length) {
@@ -383,7 +460,7 @@ if (lesson.quick_write_prompt || lesson.discourse_club_prompt) {
     s.addText(b.label, { x: bx, y: 1.2, w: boxW, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
     s.addShape("roundRect", { x: bx, y: 1.6, w: boxW, h: 2.6, rectRadius: 0.06, fill: { color: PINK_PALE }, line: { color: PINK_BORDER, width: 1.5, dashType: "dash" } });
     s.addText("Prompt", { x: bx + 0.3, y: 2.0, w: boxW - 0.6, h: 0.35, fontFace: "Arial", fontSize: 24, bold: true, color: PURPLE, margin: 0 });
-    s.addText(b.prompt, { x: bx + 0.3, y: 2.4, w: boxW - 0.6, h: 1.2, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(b.prompt), { x: bx + 0.3, y: 2.4, w: boxW - 0.6, h: 1.2, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
   });
   footer(s, pageNum++, false);
 }
@@ -446,7 +523,7 @@ if (lesson.whole_class_discourse_prompt) {
   s.addShape("rect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
   s.addText("Essential Question", { x: 0.85, y: 1.3, w: PAGE_W - 1.6, h: 0.3, fontFace: "Arial", fontSize: 22, bold: true, color: PURPLE, margin: 0 });
-  s.addText(lesson.essential_question, { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText(parseInlineMarkup(lesson.essential_question), { x: 0.85, y: 1.65, w: PAGE_W - 1.6, h: 0.75, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0, valign: "top" });
 
   // Corner radius and border color confirmed from the template's Closing
   // slide specifically -- this box is full-width here (no Language Goal
@@ -455,7 +532,7 @@ if (lesson.whole_class_discourse_prompt) {
   s.addShape("rect", { x: 0.55, y: 2.75, w: PAGE_W - 1.1, h: 0.05, fill: { color: CORAL }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.55, y: 2.8, w: PAGE_W - 1.1, h: 2.4, rectRadius: 0.113, fill: { color: WHITE }, line: { color: TP_BORDER_CLOSING, width: 1 } });
   s.addText("Teaching Point", { x: 0.75, y: 3.0, w: PAGE_W - 1.5, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
-  s.addText(lesson.teaching_point, { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.75, y: 3.4, w: PAGE_W - 1.5, h: 1.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 
   footer(s, pageNum++, false);
 }

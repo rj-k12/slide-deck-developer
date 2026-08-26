@@ -234,43 +234,75 @@ function addDecorativeBg(slide) {
   slide.addImage({ path: DECORATIVE_BG, x: 5.99 * scale, y: 0, w: 4.01 * scale, h: 3.46 * scale });
 }
 
+// Catherine's explicit rule (Slack, this lesson's Launch section):
+// "vocabulary for a section should always be the last slide of that
+// section" -- regardless of where that vocab word happens to be defined
+// inline in the source document's own script (Ashley found "ensure",
+// "evaluate", and "evolve" each introduced at three different, scattered
+// points in the real lesson text). extract_lesson.py's extraction order
+// will tend to mirror that same scattered document order for every
+// future lesson too, so this needs to be a rendering rule enforced here,
+// not a one-off reorder of this lesson's own JSON.
+//
+// Groups lesson.sections by section_name (in first-appearance order),
+// and within each group, renders every entry's NON-vocabulary content
+// first (preserving each entry's own original relative order), then
+// every entry's vocabulary content last -- handles both real shapes:
+// separate section objects sharing one section_name (this lesson's
+// actual case), and a single object that happens to carry vocabulary
+// alongside other fields together.
+function renderGroupedSections(sections, renderNonVocab, renderVocab) {
+  const names = [];
+  (sections || []).forEach(s => { if (!names.includes(s.section_name)) names.push(s.section_name); });
+  names.forEach(name => {
+    const group = (sections || []).filter(s => s.section_name === name);
+    group.forEach(section => renderNonVocab(section));
+    group.forEach(section => renderVocab(section));
+  });
+}
+
 let pageNum = 3;
-(lesson.sections || []).forEach(section => {
-  if (section.vocabulary && section.vocabulary.length) {
-    chunk(section.vocabulary, 4).forEach((words, i) => {
+renderGroupedSections(
+  lesson.sections,
+  section => {
+    if (section.mentor_prompt) {
       const s = pres.addSlide();
-      if (section.section_name === "Engage") addHeaderGradient(s);
-      if (section.section_name === "Launch") addDecorativeBg(s);
-      slideTitle(s, `${section.section_name} Vocabulary${i > 0 ? " (continued)" : ""}`, false);
-      vocabBlock(s, words, 0.55, 1.25, PAGE_W - 1.1, false);
+      slideTitle(s, `${section.section_name} Mentor Prompt`, false);
+      promptBox(s, section.mentor_prompt, 0.55, 1.5, PAGE_W - 1.1, 2.2);
       footer(s, pageNum++, false);
-    });
+    }
+    if (section.claims_to_evaluate && section.claims_to_evaluate.length) {
+      const s = pres.addSlide();
+      slideTitle(s, `${section.section_name} Claims to Evaluate`, false);
+      let y = 1.4;
+      section.claims_to_evaluate.forEach(claim => {
+        s.addShape("roundRect", { x: 0.55, y, w: PAGE_W - 1.1, h: 1.3, rectRadius: 0.06, fill: { color: PEACH }, line: { type: "none" } });
+        s.addText(parseInlineMarkup(claim), { x: 0.8, y: y + 0.12, w: PAGE_W - 1.6, h: 1.05, fontFace: "Arial", fontSize: 21.5, color: NAVY_INK, margin: 0, valign: "top" });
+        y += 1.5;
+      });
+      footer(s, pageNum++, false);
+    }
+    if (section.resource_unavailable) {
+      const s = pres.addSlide();
+      slideTitle(s, `${section.section_name} Resource`, false);
+      s.addShape("roundRect", { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1.1, rectRadius: 0.08, fill: { color: "FEF3C7" }, line: { color: "D97706", width: 1 } });
+      s.addText([{ text: "\u26a0 Needs manual follow-up: " }, ...parseInlineMarkup(section.resource_unavailable)], { x: 0.8, y: 1.65, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 16, italic: true, color: "92400E", margin: 0, valign: "top" });
+      footer(s, pageNum++, false);
+    }
+  },
+  section => {
+    if (section.vocabulary && section.vocabulary.length) {
+      chunk(section.vocabulary, 4).forEach((words, i) => {
+        const s = pres.addSlide();
+        if (section.section_name === "Engage") addHeaderGradient(s);
+        if (section.section_name === "Launch") addDecorativeBg(s);
+        slideTitle(s, `${section.section_name} Vocabulary${i > 0 ? " (continued)" : ""}`, false);
+        vocabBlock(s, words, 0.55, 1.25, PAGE_W - 1.1, false);
+        footer(s, pageNum++, false);
+      });
+    }
   }
-  if (section.mentor_prompt) {
-    const s = pres.addSlide();
-    slideTitle(s, `${section.section_name} Mentor Prompt`, false);
-    promptBox(s, section.mentor_prompt, 0.55, 1.5, PAGE_W - 1.1, 2.2);
-    footer(s, pageNum++, false);
-  }
-  if (section.claims_to_evaluate && section.claims_to_evaluate.length) {
-    const s = pres.addSlide();
-    slideTitle(s, `${section.section_name} Claims to Evaluate`, false);
-    let y = 1.4;
-    section.claims_to_evaluate.forEach(claim => {
-      s.addShape("roundRect", { x: 0.55, y, w: PAGE_W - 1.1, h: 1.3, rectRadius: 0.06, fill: { color: PEACH }, line: { type: "none" } });
-      s.addText(parseInlineMarkup(claim), { x: 0.8, y: y + 0.12, w: PAGE_W - 1.6, h: 1.05, fontFace: "Arial", fontSize: 21.5, color: NAVY_INK, margin: 0, valign: "top" });
-      y += 1.5;
-    });
-    footer(s, pageNum++, false);
-  }
-  if (section.resource_unavailable) {
-    const s = pres.addSlide();
-    slideTitle(s, `${section.section_name} Resource`, false);
-    s.addShape("roundRect", { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1.1, rectRadius: 0.08, fill: { color: "FEF3C7" }, line: { color: "D97706", width: 1 } });
-    s.addText([{ text: "\u26a0 Needs manual follow-up: " }, ...parseInlineMarkup(section.resource_unavailable)], { x: 0.8, y: 1.65, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 16, italic: true, color: "92400E", margin: 0, valign: "top" });
-    footer(s, pageNum++, false);
-  }
-});
+);
 
 // ===== Slide: Literature Response =====
 if (lesson.literature_response_prompt) {
