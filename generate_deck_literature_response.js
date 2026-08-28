@@ -17,6 +17,10 @@ const PEACH = "FFDBC5";
 const MUTED = "6B6478";
 const VIOLET = "9343F6";
 const TABLE_BORDER = "DCD6EE";
+// Missing from this file (present in generate_deck.js) -- needed for the
+// vocab word/definition color fix below, confirmed 110045 against the
+// template's Engage/Launch Vocabulary XML.
+const DETAIL_DESC_COLOR = "110045";
 // Same confirmed values as generate_deck.js -- see that file for the
 // template-measurement notes.
 const TP_BORDER_ORANGE = "FFAB7B";
@@ -91,6 +95,17 @@ function chunk(arr, size) {
 // fragile than handling both in one pass.
 function parseInlineMarkup(text) {
   if (!text) return [{ text: text || "" }];
+  // Ashley flagged "Finding Langston" appearing un-underlined (title
+  // slide byline, prompt text) even though extract_lesson.py is supposed
+  // to wrap underlined source spans in <u>...</u> -- checked
+  // lesson_6b_REAL.json directly and it has no <u> tags at all, so
+  // extraction didn't tag the title this time. Since core_text IS the
+  // book/text title by definition, auto-underline every literal,
+  // not-already-tagged occurrence of it here as a safety net. Ported
+  // from the same fix in generate_deck.js.
+  if (typeof lesson !== "undefined" && lesson.core_text && text.includes(lesson.core_text) && !text.includes(`<u>${lesson.core_text}</u>`)) {
+    text = text.split(lesson.core_text).join(`<u>${lesson.core_text}</u>`);
+  }
   const parts = [];
   const underlineRe = /<u>(.*?)<\/u>/g;
   let lastIndex = 0, m;
@@ -160,8 +175,13 @@ function vocabBlock(slide, words, x, y, w, onDark) {
       if (iconPath) {
         slide.addImage({ path: iconPath, x: bx + 0.2, y: by + 0.2, w: 0.55, h: 0.55 });
       }
-      slide.addText(parseInlineMarkup(item.word), { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: NAVY_INK, margin: 0 });
-      slide.addText(parseInlineMarkup(item.definition), { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: rowH - 1.15, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+      // Ashley: "template - font color is hex #110045" (on the Engage
+      // Vocabulary "compelling" word/definition) -- confirmed against the
+      // template's Engage/Launch Vocabulary XML directly: both [word] and
+      // [definition] runs are 110045, not NAVY_INK/BODY. Ported from the
+      // same fix in generate_deck.js's vocabBlock.
+      slide.addText(parseInlineMarkup(item.word), { x: bx + 0.9, y: by + 0.22, w: colW - 1.05, h: 0.5, fontFace: "Arial", fontSize: 24, bold: true, color: DETAIL_DESC_COLOR, margin: 0 });
+      slide.addText(parseInlineMarkup(item.definition), { x: bx + 0.2, y: by + 1.0, w: colW - 0.4, h: rowH - 1.15, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
     });
     cursorY += rowH + 0.15;
   });
@@ -189,7 +209,7 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addText(`Grade ${lesson.grade.replace('Grade ','')}, Knowledge Unit ${lesson.unit_number}: ${lesson.unit_title}`, { x: 0.55, y: 3.35, w: 12.2, h: 1.1, fontFace: "Arial", fontSize: 25.5, color: "E5EFF9", margin: 0, valign: "top" });
   if (lesson.core_text) {
     const byLine = lesson.author ? `${lesson.core_text} by ${lesson.author}` : lesson.core_text;
-    s.addText(`${byLine}${lesson.pages ? "   |   Pages " + lesson.pages : ""}`, { x: 0.55, y: 4.65, w: 12.2, h: 0.6, fontFace: "Arial", fontSize: 21.5, italic: true, color: "C9BEEB", margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(`${byLine}${lesson.pages ? "   |   Pages " + lesson.pages : ""}`), { x: 0.55, y: 4.65, w: 12.2, h: 0.6, fontFace: "Arial", fontSize: 21.5, italic: true, color: "C9BEEB", margin: 0, valign: "top" });
   }
   s.addText("Copyright \u00a9 2026 Lavinia Group. All Rights Reserved. RedThread is a trademark of K12 Coalition.", { x: 0.55, y: PAGE_H - 0.5, w: 11.5, h: 0.3, fontFace: "Arial", fontSize: 10, color: "9A8FD1", margin: 0 });
 }
@@ -217,7 +237,14 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addShape("roundRect", { x: 0.55, y: rowTop + 0.05, w: colW, h: rowH - 0.05, rectRadius: 0.139, fill: { color: WHITE }, line: { color: TP_BORDER_ORANGE, width: 1.5 } });
   s.addText("Teaching Point", { x: 0.75, y: rowTop + 0.25, w: colW - 0.4, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: CORAL, margin: 0 });
   if (lesson.teaching_point) {
-    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, color: BODY, margin: 0, valign: "top" });
+    // Ashley's #110045 comment here (on "Writers study a prompt...")
+    // checked against the template's EQ/TP/LG slide (slide3.xml)
+    // directly: the Teaching Point body run is actually 0E0142
+    // (NAVY_INK), not 110045. BODY was wrong either way; using the
+    // measured template value. Same discrepancy as generate_deck.js --
+    // worth flagging to Ashley that the real template doesn't match what
+    // she expected here.
+    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.75, y: rowTop + 0.6, w: colW - 0.4, h: rowH - 0.8, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
   }
 
   const lgX = 0.55 + colW + colGap;
@@ -273,12 +300,14 @@ renderGroupedSections(
   section => {
     if (section.mentor_prompt) {
       const s = pres.addSlide();
+      addHeaderGradient(s);
       slideTitle(s, `${section.section_name} Mentor Prompt`, false);
       promptBox(s, section.mentor_prompt, 0.55, 1.5, PAGE_W - 1.1, 2.2);
       footer(s, pageNum++, false);
     }
     if (section.claims_to_evaluate && section.claims_to_evaluate.length) {
       const s = pres.addSlide();
+      addHeaderGradient(s);
       slideTitle(s, `${section.section_name} Claims to Evaluate`, false);
       let y = 1.4;
       section.claims_to_evaluate.forEach(claim => {
@@ -290,6 +319,7 @@ renderGroupedSections(
     }
     if (section.resource_unavailable) {
       const s = pres.addSlide();
+      addHeaderGradient(s);
       slideTitle(s, `${section.section_name} Resource`, false);
       s.addShape("roundRect", { x: 0.55, y: 1.5, w: PAGE_W - 1.1, h: 1.1, rectRadius: 0.08, fill: { color: "FEF3C7" }, line: { color: "D97706", width: 1 } });
       s.addText([{ text: "\u26a0 Needs manual follow-up: " }, ...parseInlineMarkup(section.resource_unavailable)], { x: 0.8, y: 1.65, w: PAGE_W - 1.6, h: 0.8, fontFace: "Arial", fontSize: 16, italic: true, color: "92400E", margin: 0, valign: "top" });
@@ -300,7 +330,17 @@ renderGroupedSections(
     if (section.vocabulary && section.vocabulary.length) {
       chunk(section.vocabulary, 4).forEach((words, i) => {
         const s = pres.addSlide();
-        if (section.section_name === "Engage") addHeaderGradient(s);
+        // RJ: gradient was missing here and elsewhere in this file --
+        // same fix as generate_deck.js. Rendered all 18 real template
+        // slides to PNG and sampled pixel colors directly (grep for
+        // gradFill in each slide's own XML missed most of these because
+        // the gradient is inherited from the slide LAYOUT, not embedded
+        // per-slide). Ground truth: every content slide has it except
+        // the cover, the purple Lesson-title slide, and the dark-purple
+        // Lesson Vocabulary Review slides -- applying unconditionally
+        // here and at every other light-background slide below, not
+        // just "Engage" as before.
+        addHeaderGradient(s);
         if (section.section_name === "Launch") addDecorativeBg(s);
         slideTitle(s, `${section.section_name} Vocabulary${i > 0 ? " (continued)" : ""}`, false);
         vocabBlock(s, words, 0.55, 1.25, PAGE_W - 1.1, false);
@@ -313,6 +353,7 @@ renderGroupedSections(
 // ===== Slide: Literature Response =====
 if (lesson.literature_response_prompt) {
   const s = pres.addSlide();
+  addHeaderGradient(s);
   slideTitle(s, "Literature Response", false);
   s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
@@ -333,6 +374,7 @@ if (lesson.literature_response_prompt) {
 // ===== Slide: Closing =====
 {
   const s = pres.addSlide();
+  addHeaderGradient(s);
   slideTitle(s, "Closing", false);
   s.addShape("roundRect", { x: 0.55, y: 1.15, w: 0.06, h: 1.35, rectRadius: 0.03, fill: { color: PURPLE }, line: { type: "none" } });
   s.addShape("roundRect", { x: 0.61, y: 1.15, w: PAGE_W - 1.2, h: 1.35, rectRadius: 0.139, fill: { color: CREAM_YELLOW }, line: { type: "none" } });
