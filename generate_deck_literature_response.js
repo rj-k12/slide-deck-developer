@@ -361,15 +361,23 @@ if (lesson.literature_response_prompt) {
   footer(s, pageNum++, false);
 }
 
-// NOTE: the "Writers' Circle & Revise" slide (Teaching Point recap +
-// "Focus for Feedback" bulleted list) was removed per Ashley's review
-// comment on the Lesson 6b Google Slides doc -- she flagged this as
-// teacher-facing facilitation content (guidance for what the teacher
-// should listen for/give feedback on) that doesn't belong in the
-// student-facing deck, and noted the Knowledge Slide Template doc
-// doesn't call for it either. lesson.writers_circle is still accepted
-// in extract_lesson.py's schema (in case a future template does want
-// it), it's just not rendered here.
+// ===== Slide: Writers' Circle & Revise -- heading + Teaching Point only.
+// RJ (relaying a newer Ashley comment on 6b slide 9, not visible in this
+// doc's own comment threads when checked) : add this slide back, but
+// only the heading and Teaching Point -- the "Focus for Feedback"
+// bulleted list stays cut. That list was the actual problem in Ashley's
+// original review comment (teacher-facing facilitation guidance, not
+// content for the student-facing deck) -- the heading + Teaching Point
+// recap alone doesn't have that issue, so only that half comes back.
+// lesson.writers_circle.focus_points still isn't rendered here.
+if (lesson.writers_circle) {
+  const s = pres.addSlide();
+  addHeaderGradient(s);
+  slideTitle(s, "Writers' Circle & Revise", false);
+  s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: NAVY_INK, margin: 0, valign: "top" });
+  footer(s, pageNum++, false);
+}
 
 // ===== Slide: Closing =====
 {
