@@ -601,16 +601,25 @@ if (ir || sa) {
   footer(s, pageNum++, false);
 }
 
-// ===== Slide: Quick Write & Discourse Clubs -- pale pink dashed boxes =====
-if (lesson.quick_write_prompt || lesson.discourse_club_prompt) {
+// ===== Slide: Quick Write & Discourse Clubs -- pale pink dashed boxes.
+// Catherine (replying to Ashley's question about the two places Discourse
+// Clubs appears in the template): "it's only meant to be used if there's
+// both a quick write and a discourse club... it's an either or." This
+// slide was rendering whenever EITHER prompt existed (using ||), showing
+// a single-box "Discourse Clubs"-only or "Quick Write"-only version of
+// this slide even when the other detail slide (icon card) below was
+// about to say the same thing again -- should only appear when both are
+// present together; with just one, only its own detail slide should
+// render. =====
+if (lesson.quick_write_prompt && lesson.discourse_club_prompt) {
   const s = pres.addSlide();
   addHeaderGradient(s);
-  const hasBoth = lesson.quick_write_prompt && lesson.discourse_club_prompt;
-  slideTitle(s, hasBoth ? "Quick Write & Discourse Clubs" : (lesson.quick_write_prompt ? "Quick Write" : "Discourse Clubs"), false);
-  const boxes = [];
-  if (lesson.quick_write_prompt) boxes.push({ label: "QUICK WRITE", prompt: lesson.quick_write_prompt });
-  if (lesson.discourse_club_prompt) boxes.push({ label: "DISCOURSE CLUBS", prompt: lesson.discourse_club_prompt });
-  const boxW = boxes.length === 2 ? (PAGE_W - 1.3) / 2 : PAGE_W - 1.1;
+  slideTitle(s, "Quick Write & Discourse Clubs", false);
+  const boxes = [
+    { label: "QUICK WRITE", prompt: lesson.quick_write_prompt },
+    { label: "DISCOURSE CLUBS", prompt: lesson.discourse_club_prompt },
+  ];
+  const boxW = (PAGE_W - 1.3) / 2;
   boxes.forEach((b, i) => {
     const bx = 0.55 + i * (boxW + 0.2);
     s.addText(b.label, { x: bx, y: 1.2, w: boxW, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
