@@ -102,61 +102,89 @@ function slideTitle(slide, title, onDark) {
 // the card (and its description text box) were a fixed height sized for
 // ~2 lines -- the rest spilled past the card's rounded bottom edge onto
 // the plain white slide background, looking broken.
+// The template's actual slide canvas is 10in wide (9144000 EMU per
+// presentation.xml), but this generator's canvas is PowerPoint's default
+// widescreen, 13.3in (PAGE_W below) -- a real, confirmed 1.333x
+// (PAGE_W/10) mismatch. Historically only font sizes got this
+// correction (per this repo's own history), which is why vocabBlock's
+// fonts (word 18pt->24, definition 16pt->~21.5) already look right
+// relative to their cards. detailPromptSlide's card/box geometry below
+// was never put through that correction -- someone measured the
+// template's raw inches and used them directly on this larger canvas,
+// making the card and prompt box both come out relatively narrower and
+// (once dynamic height was added for the overflow fix) taller than the
+// template really has them, plus wrong font sizes since 21.5/17.5 were
+// never derived from the template at all. Ashley caught exactly this:
+// "the entire pink Discourse Clubs box appears wider in the template"
+// and "these [title/description] are the same font size -- Arial 14"
+// (that 14pt has no explicit sz in the template XML -- it's inherited,
+// which is why it wasn't visible in the raw XML scan alone; trusting
+// her direct read of the rendered text in the app over that gap).
+const TEMPLATE_SCALE = 4 / 3; // 13.3in canvas over the template's 10in
+// Estimates wrapped-line count for detailPromptSlide's card description
+// (now Arial 18.5pt, Ashley-confirmed 14pt template size x TEMPLATE_SCALE)
+// -- same overflow problem vocabBlock's estimateDefinitionLines already
+// solves for vocab definitions, just re-tuned for this font size/width.
 function estimateDescLines(text, w) {
-  const charsPerLine = (w - 0.4) * 6.6; // empirically tuned for Arial 17.5pt
+  const charsPerLine = w * 7.0; // empirically tuned for Arial 18.5pt at this card's real text width
   return Math.max(1, Math.ceil((text || "").length / charsPerLine));
 }
 function detailPromptSlide(s, opts) {
   const { cardColor, accentColor, iconPath, cardTitle, description, promptLabel, promptText, boxBorderColor } = opts;
-  // Position/size confirmed directly from the template's Discourse Clubs
-  // slide -- was previously an approximation (0.7/1.9/3.0/3.85) that ran
-  // noticeably larger and differently positioned than the real card.
-  const cardX = 0.521, cardY = 1.458, cardW = 2.292;
-  // Card height now grows to fit the description instead of a fixed
-  // 2.917in -- floored at that original default so short descriptions
-  // keep the established look (matches vocabBlock's Math.max pattern).
-  // Title is assumed to need up to 2 lines (already handled below); the
-  // description starts after that fixed 2.05in offset, so its own
-  // required height is line count * ~0.29in (17.5pt line height) + a
-  // little padding.
-  const descLines = estimateDescLines(description, cardW - 0.5);
-  const cardH = Math.max(2.917, 2.05 + descLines * 0.29 + 0.3);
-  // Radius confirmed from template (Discourse Clubs / Quick Write detail
-  // slides): adj=5454 on the icon card -> ~0.167in at this file's scale.
-  // Was 0.08, visibly too subtle.
-  s.addShape("roundRect", { x: cardX, y: cardY, w: cardW, h: cardH, rectRadius: 0.167, fill: { color: cardColor }, line: { type: "none" } });
+  // Template's card roundRect: off 0.521/1.458, ext 2.292/2.917 (its own
+  // 10in-scale inches) -- scaled by TEMPLATE_SCALE for this canvas.
+  const cardX = 0.521 * TEMPLATE_SCALE, cardY = 1.458 * TEMPLATE_SCALE, cardW = 2.292 * TEMPLATE_SCALE;
+  // Text box width, computed once and reused for both the line-count
+  // estimate and the actual rendered text box below -- previously these
+  // used two different width expressions, so the estimate didn't match
+  // what actually got rendered and badly overestimated line count (7
+  // lines predicted vs. 5 actually rendered), inflating cardH well past
+  // where the real content needed it.
+  const textW = cardW - 0.417 * TEMPLATE_SCALE;
+  // Card height still grows to fit long descriptions (same overflow fix
+  // as before), just floored at the correctly-scaled template default
+  // instead of the old unscaled one, and re-tuned for the corrected
+  // width/font (14pt->~18.5, scaled card width).
+  const descLines = estimateDescLines(description, textW);
+  // descTextOffset must match the actual y-offset used for the
+  // description text box below (cardY + 1.150*scale + 0.55*scale) --
+  // this previously used a different, uncalibrated constant (2.05*scale)
+  // that didn't match what was actually rendered, so even the correct
+  // descLines count (5, matching the real wrap) produced a cardH bigger
+  // than the template's true floor. Using the real offset here makes a
+  // normal-length description (like this one) land back at the floor,
+  // matching the template exactly, while still growing for genuinely
+  // long descriptions.
+  const descTextOffset = 1.7 * TEMPLATE_SCALE;
+  const cardH = Math.max(2.917 * TEMPLATE_SCALE, descTextOffset + descLines * 0.32 + 0.15);
+  // Radius scaled the same way -- this was left at the template's raw
+  // value before (0.167) along with everything else in this function.
+  s.addShape("roundRect", { x: cardX, y: cardY, w: cardW, h: cardH, rectRadius: 0.167 * TEMPLATE_SCALE, fill: { color: cardColor }, line: { type: "none" } });
   if (iconPath) {
-    // RJ: Discourse Clubs / Whole-Class Discourse weren't using the
-    // template's own icons -- assets/detail_icons/*.png were generic
-    // navy Tabler outline icons, not the colorful themed ones actually
-    // in the template (book+gear, pencil+hills, dual speech-bubbles).
-    // Replaced those PNGs with the real icons extracted directly from
-    // the template's media folder (image8/9/10.png). Those real icons
-    // aren't square like the old placeholders, so a fixed 0.65x0.65 box
-    // would stretch them -- iconW/iconH (below) are the real templates'
-    // own measured icon dimensions (slide12/13/14.xml), confirmed to
-    // already be in this file's canvas scale (the template's own card
-    // position, 0.521/1.458, matches cardX/cardY above exactly, with no
-    // conversion factor needed), defaulting to the old square size for
-    // any caller that doesn't pass one.
-    const iconW = opts.iconW || 0.65, iconH = opts.iconH || 0.65;
-    s.addImage({ path: iconPath, x: cardX + 0.25, y: cardY + 0.3, w: iconW, h: iconH });
+    // iconW/iconH (passed per call site) are the template's own raw
+    // measured icon dimensions (slide12/13/14.xml, still in the
+    // template's 10in-scale inches) -- scaled here along with everything
+    // else now, instead of being used unscaled.
+    const iconW = (opts.iconW || 0.65) * TEMPLATE_SCALE, iconH = (opts.iconH || 0.65) * TEMPLATE_SCALE;
+    s.addImage({ path: iconPath, x: cardX + 0.208 * TEMPLATE_SCALE, y: cardY + 0.270 * TEMPLATE_SCALE, w: iconW, h: iconH });
   }
-  // Colors confirmed directly from the template across all three of
-  // these slides (Discourse Clubs, Quick Write, Whole-Class Discourse):
-  // card title is PURPLE (was NAVY_INK), description is DETAIL_DESC_COLOR
-  // (was MUTED, which was visibly too gray/washed out compared to the
-  // template's solid dark-navy description text).
-  // Title now wraps to two lines at the corrected (narrower) card width
-  // -- description's y-offset increased from the card's own top edge to
-  // give it clearance, rather than the two visibly overlapping.
-  s.addText(cardTitle, { x: cardX + 0.25, y: cardY + 1.15, w: cardW - 0.5, h: 0.75, fontFace: "Arial", fontSize: 21.5, bold: true, color: PURPLE, margin: 0, valign: "top" });
-  s.addText(description, { x: cardX + 0.25, y: cardY + 2.05, w: cardW - 0.5, h: cardH - 2.05, fontFace: "Arial", fontSize: 17.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+  // Title/description: template's combined text box is a single shape
+  // with two paragraphs (off 0.729/2.608, ext 1.875/1.401, all 10in-scale
+  // relative to the card at 0.521/1.458 -- i.e. offset +0.208/+1.150 from
+  // the card's own corner) -- scaled the same way. Font size 14pt in the
+  // template (Ashley, confirmed -- no explicit sz in the XML, it's
+  // inherited) for BOTH runs, scaled to ~18.5, replacing the old 21.5/17.5
+  // that were never derived from the template.
+  const textX = cardX + 0.208 * TEMPLATE_SCALE;
+  s.addText(cardTitle, { x: textX, y: cardY + 1.150 * TEMPLATE_SCALE, w: textW, h: 0.5 * TEMPLATE_SCALE, fontFace: "Arial", fontSize: 18.5, bold: true, color: PURPLE, margin: 0, valign: "top" });
+  s.addText(description, { x: textX, y: cardY + 1.150 * TEMPLATE_SCALE + 0.55 * TEMPLATE_SCALE, w: textW, h: cardH - (1.150 * TEMPLATE_SCALE + 0.55 * TEMPLATE_SCALE), fontFace: "Arial", fontSize: 18.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
 
-  const boxX = cardX + cardW + 0.45, boxW = PAGE_W - boxX - 0.55;
-  s.addShape("roundRect", { x: boxX, y: cardY, w: 0.08, h: cardH, rectRadius: 0.04, fill: { color: accentColor }, line: { type: "none" } });
-  // Radius confirmed from template: adj=4285 on the white prompt box ->
-  // ~0.167in, essentially the same absolute radius as the card above.
+  // Prompt box: template's box is off 3.437/1.458, ext 5.729/2.917
+  // (10in-scale) -- measured directly rather than derived from cardX so
+  // it matches the template's real absolute position, not just an
+  // arbitrary gap after the card.
+  const boxX = 3.437 * TEMPLATE_SCALE, boxW = 5.729 * TEMPLATE_SCALE;
+  s.addShape("roundRect", { x: boxX - 0.312 * TEMPLATE_SCALE, y: cardY, w: 0.08 * TEMPLATE_SCALE, h: cardH, rectRadius: 0.04 * TEMPLATE_SCALE, fill: { color: accentColor }, line: { type: "none" } });
   // Border color: defaults to DETAIL_BOX_BORDER (pale pink), confirmed
   // directly from the template on both the Discourse Clubs and Quick
   // Write slides -- but Ashley's own comment on the Discourse Clubs
@@ -165,9 +193,14 @@ function detailPromptSlide(s, opts) {
   // (see below) rather than the measured value, since she's looking at
   // the real rendered deck and may be catching something this static
   // template file doesn't reflect.
-  s.addShape("roundRect", { x: boxX + 0.08, y: cardY, w: boxW - 0.08, h: cardH, rectRadius: 0.167, fill: { color: WHITE }, line: { color: boxBorderColor || DETAIL_BOX_BORDER, width: 1 } });
-  s.addText(promptLabel, { x: boxX + 0.4, y: cardY + 0.35, w: boxW - 0.8, h: 0.3, fontFace: "Arial", fontSize: 18.5, bold: true, color: accentColor, margin: 0 });
-  s.addText(parseInlineMarkup(promptText), { x: boxX + 0.4, y: cardY + 0.75, w: boxW - 0.8, h: cardH - 1.1, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  s.addShape("roundRect", { x: boxX - 0.312 * TEMPLATE_SCALE + 0.08 * TEMPLATE_SCALE, y: cardY, w: boxW + 0.312 * TEMPLATE_SCALE - 0.08 * TEMPLATE_SCALE, h: cardH, rectRadius: 0.167 * TEMPLATE_SCALE, fill: { color: WHITE }, line: { color: boxBorderColor || DETAIL_BOX_BORDER, width: 1 } });
+  // "Prompt" label has no explicit sz in the template either -- inherits
+  // the same paragraph default as the prompt text below it, which DOES
+  // have an explicit sz="1800" (18pt) -- scaled to 24, matching what the
+  // prompt text was already correctly using. Label was at 18.5 before,
+  // inconsistent with its own prompt text at 24; now both 24.
+  s.addText(promptLabel, { x: boxX, y: cardY + 0.15 * TEMPLATE_SCALE, w: boxW, h: 0.3 * TEMPLATE_SCALE, fontFace: "Arial", fontSize: 24, bold: true, color: accentColor, margin: 0 });
+  s.addText(parseInlineMarkup(promptText), { x: boxX, y: cardY + 0.15 * TEMPLATE_SCALE + 0.45 * TEMPLATE_SCALE, w: boxW, h: cardH - (0.15 * TEMPLATE_SCALE + 0.45 * TEMPLATE_SCALE), fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
 }
 function chunk(arr, size) {
   const out = [];
@@ -502,7 +535,17 @@ renderGroupedSections(
     // specific slide types" conditions were wrong; applying it
     // unconditionally here and at every other light-background slide
     // below instead.
-    if (section.read_directions) {
+    // Ashley (later, explicit correction superseding the split above):
+    // "move these directions to fit above the chart on the next slide
+    // (like on slide 6 in the template)... Then delete this slide."
+    // Checked slide6.xml directly -- the template really does combine
+    // them on one slide, directions text then the chart below it, which
+    // is what this now does; the standalone "Launch Read Directions"
+    // slide from the split above is gone when a chart is also present.
+    // A section with read_directions but no chart still gets its own
+    // standalone slide (nothing in the template or Ashley's note
+    // suggests that case should change).
+    if (section.read_directions && !section.chart) {
       const s = pres.addSlide();
       addHeaderGradient(s);
       slideTitle(s, `${section.section_name} Read Directions`, false);
@@ -516,6 +559,11 @@ renderGroupedSections(
       const s = pres.addSlide();
       addHeaderGradient(s);
       slideTitle(s, `${section.section_name} Chart`, false);
+      let chartY = 1.15;
+      if (section.read_directions) {
+        s.addText(parseInlineMarkup(section.read_directions), { x: 0.55, y: chartY, w: PAGE_W - 1.1, h: 0.7, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+        chartY += 0.75;
+      }
       // RJ: this chart should render blank (headers only) -- checked
       // directly against the template's own Launch Chart slide XML
       // (slide6.xml) and it's exactly that: "[Title]"/"[Title]" headers
@@ -527,7 +575,7 @@ renderGroupedSections(
       // correctly when rows is absent/empty (see independent_reading's
       // chart), so drop the extracted rows here rather than changing
       // addChart itself.
-      addChart(s, { ...section.chart, rows: null }, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
+      addChart(s, { ...section.chart, rows: null }, 0.55, chartY, PAGE_W - 1.1, PAGE_H - chartY - 0.6);
       footer(s, pageNum++, false);
     }
     if (section.resource_unavailable) {
