@@ -356,7 +356,12 @@ if (lesson.literature_response_prompt) {
   addHeaderGradient(s);
   slideTitle(s, "Literature Response", false);
   s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
-  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: BODY, margin: 0, valign: "top" });
+  // Ashley: "template - font color is hex #110045" (comment on this
+  // slide specifically). No matching slide type in the reference
+  // template to cross-check against here (unlike the EQ/TP/LG Teaching
+  // Point, where the template contradicted this same comment) -- applying
+  // as stated since there's no counter-evidence for this instance.
+  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
   promptBox(s, lesson.literature_response_prompt, 0.55, 3.0, PAGE_W - 1.1, 1.4);
   footer(s, pageNum++, false);
 }
