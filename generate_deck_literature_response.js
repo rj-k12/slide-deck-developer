@@ -327,6 +327,40 @@ function renderGroupedSections(sections, renderNonVocab, renderVocab) {
 // this lesson's planners are only ever label+bulleted-list sections, no
 // text/table sections -- so a dedicated, smaller renderer rather than
 // importing that more general one.
+// Estimates the vertical space a single planner section (label + its
+// bulleted items) will need at renderSimplePlanner's fixed font sizes --
+// used by splitPlannerSections below to decide where to break onto a new
+// slide, so a section's own label+items are never split across a page
+// boundary mid-list.
+function estimatePlannerSectionHeight(section, w) {
+  const charsPerLine = (w - 0.3) * 6.6;
+  let h = 0.38; // label
+  (section.items || []).forEach(item => {
+    const lines = Math.max(1, Math.ceil(item.length / charsPerLine));
+    h += 0.28 + lines * 0.3;
+  });
+  return h + 0.15;
+}
+// Groups planner sections into per-slide chunks that fit maxHeight --
+// same overflow problem as generate_deck_writing.js's Mentor Planner
+// (RJ: "some of the fonts are very small" led to bumping the font size
+// here, which then made the full planner no longer fit on one slide).
+// Never splits a single section's own label+items apart.
+function splitPlannerSections(sections, w, maxHeight) {
+  const groups = [];
+  let current = [], heightSoFar = 0;
+  sections.forEach(section => {
+    const secH = estimatePlannerSectionHeight(section, w);
+    if (current.length && heightSoFar + secH > maxHeight) {
+      groups.push(current);
+      current = []; heightSoFar = 0;
+    }
+    current.push(section);
+    heightSoFar += secH;
+  });
+  if (current.length) groups.push(current);
+  return groups;
+}
 function renderSimplePlanner(slide, title, sections, x, y, w, h) {
   let cy = y;
   if (title) {
@@ -334,14 +368,22 @@ function renderSimplePlanner(slide, title, sections, x, y, w, h) {
     cy += 0.42;
   }
   sections.forEach(section => {
-    slide.addText(section.label, { x, y: cy, w, h: 0.28, fontFace: "Arial", fontSize: 15, bold: true, color: PURPLE, margin: 0 });
-    cy += 0.32;
+    slide.addText(section.label, { x, y: cy, w, h: 0.32, fontFace: "Arial", fontSize: 17, bold: true, color: PURPLE, margin: 0 });
+    cy += 0.38;
     (section.items || []).forEach(item => {
-      slide.addShape("ellipse", { x: x + 0.05, y: cy + 0.08, w: 0.09, h: 0.09, fill: { color: VIOLET }, line: { type: "none" } });
-      slide.addText(parseInlineMarkup(item), { x: x + 0.25, y: cy, w: w - 0.25, h: 0.5, fontFace: "Arial", fontSize: 12.5, color: NAVY_INK, margin: 0, valign: "top" });
-      cy += 0.34 + Math.floor(item.length / 95) * 0.2; // rough allowance for items that wrap to 2 lines
+      slide.addShape("ellipse", { x: x + 0.05, y: cy + 0.1, w: 0.1, h: 0.1, fill: { color: VIOLET }, line: { type: "none" } });
+      slide.addText(parseInlineMarkup(item), { x: x + 0.3, y: cy, w: w - 0.3, h: 0.6, fontFace: "Arial", fontSize: 16, color: NAVY_INK, margin: 0, valign: "top" });
+      // RJ: fonts were very small here (12.5pt) with no real basis --
+      // same issue as generate_deck_writing.js's planner, fixed the same
+      // way (bumped to the deck's normal 16-17pt range). Re-tuned the
+      // wrapped-line estimate for the new, larger font (fewer characters
+      // fit per line at 16pt than the old 12.5pt did) so items still get
+      // enough vertical room and don't overlap the next one.
+      const charsPerLine = (w - 0.3) * 6.6;
+      const lines = Math.max(1, Math.ceil(item.length / charsPerLine));
+      cy += 0.28 + lines * 0.3;
     });
-    cy += 0.12;
+    cy += 0.15;
   });
 }
 
@@ -372,7 +414,13 @@ renderGroupedSections(
         s.addText(parseInlineMarkup(section.mentor_text_prompt), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 15, italic: true, color: NAVY_INK, margin: 0 });
         y += 0.55;
       }
-      s.addText(parseInlineMarkup(section.mentor_text), { x: 0.55, y, w: PAGE_W - 1.1, h: PAGE_H - y - 0.6, fontFace: "Arial", fontSize: 14.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+      // RJ: hard to read. Root cause was line length, not font size --
+      // this ran the text the full 12.2in slide width, so each line was
+      // ~140 characters, well past a comfortable reading measure. Capped
+      // the box at 9in (roughly 80-90 characters/line at this size) and
+      // added lineSpacingMultiple so lines have room to breathe, rather
+      // than just shrinking or enlarging the font.
+      s.addText(parseInlineMarkup(section.mentor_text), { x: 0.55, y, w: 9, h: PAGE_H - y - 0.6, fontFace: "Arial", fontSize: 15, color: DETAIL_DESC_COLOR, margin: 0, valign: "top", lineSpacingMultiple: 1.35 });
       footer(s, pageNum++, false);
     }
     // "Qualities of a Strong Literature Response" -- a numbered criteria
@@ -385,18 +433,26 @@ renderGroupedSections(
       slideTitle(s, "Qualities of a Strong Literature Response", false);
       let y = 1.3;
       section.criteria_list.forEach((item, i) => {
-        s.addText(`${i + 1}.`, { x: 0.55, y, w: 0.4, h: 0.6, fontFace: "Arial", fontSize: 17, bold: true, color: PURPLE, margin: 0 });
+        // RJ: number wasn't aligned with its text -- the number box had
+        // no valign set while the text box next to it did, so they used
+        // different default vertical anchors within the same-height box.
+        s.addText(`${i + 1}.`, { x: 0.55, y, w: 0.4, h: 0.6, fontFace: "Arial", fontSize: 17, bold: true, color: PURPLE, margin: 0, valign: "top" });
         s.addText(parseInlineMarkup(item), { x: 0.95, y, w: PAGE_W - 1.5, h: 0.6, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
         y += 0.7;
       });
       footer(s, pageNum++, false);
     }
     if (section.mentor_planner) {
-      const s = pres.addSlide();
-      addHeaderGradient(s);
-      slideTitle(s, `${section.section_name} Mentor Planner`, false);
-      renderSimplePlanner(s, section.mentor_planner.title, section.mentor_planner.sections, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
-      footer(s, pageNum++, false);
+      const title = section.mentor_planner.title;
+      const availH = PAGE_H - 1.75 - 0.42; // minus the title line renderSimplePlanner draws itself
+      const groups = splitPlannerSections(section.mentor_planner.sections, PAGE_W - 1.1, availH);
+      groups.forEach((group, i) => {
+        const s = pres.addSlide();
+        addHeaderGradient(s);
+        slideTitle(s, `${section.section_name} Mentor Planner${i > 0 ? " (continued)" : ""}`, false);
+        renderSimplePlanner(s, i === 0 ? title : "", group, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
+        footer(s, pageNum++, false);
+      });
     }
     if (section.claims_to_evaluate && section.claims_to_evaluate.length) {
       const s = pres.addSlide();
@@ -466,11 +522,14 @@ if (lesson.literature_response_prompt) {
 // different, earlier prompt used purely to teach the format). New for
 // this lesson -- 6b didn't reprint one.
 if (lesson.sample_planner) {
-  const s = pres.addSlide();
-  addHeaderGradient(s);
-  slideTitle(s, "Sample Literature Response Planner", false);
-  renderSimplePlanner(s, "", lesson.sample_planner.sections, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
-  footer(s, pageNum++, false);
+  const groups = splitPlannerSections(lesson.sample_planner.sections, PAGE_W - 1.1, PAGE_H - 1.75);
+  groups.forEach((group, i) => {
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, `Sample Literature Response Planner${i > 0 ? " (continued)" : ""}`, false);
+    renderSimplePlanner(s, "", group, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
+    footer(s, pageNum++, false);
+  });
 }
 
 // ===== Slide: Writers' Circle & Revise -- heading + Teaching Point only.

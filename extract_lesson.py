@@ -132,7 +132,7 @@ Schema:
   "unit_number": "string",
   "unit_title": "string",
   "lesson_number": "string, e.g. '6a'",
-  "core_text": "string, title of the text being read",
+  "core_text": "string, title of the UNIT's core narrative text (e.g. 'Finding Langston') -- NOT any standalone supplementary text a given lesson happens to read (e.g. a Britannica Kids article read only in that lesson's Shared Analysis). Empty if this lesson doesn't reference the unit's core narrative directly. Confirmed with RJ: reserved for the unit's core narrative only, even when a lesson's only reading for the day is something else.",
   "author": "string, empty if not given",
   "pages": "string, e.g. '46-50', empty if not applicable",
   "essential_question": "string",
