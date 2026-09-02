@@ -664,6 +664,15 @@ if (ir || sa) {
   if (block.vocabulary && block.vocabulary.length) {
     s.addText("IMPORTANT VOCABULARY", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
     y += 0.42;
+    // RJ (found via a real Lesson 1 example, "discrimination"'s 3-line
+    // definition): the fixed 0.66in per-item increment below was tuned
+    // for ~2-line definitions like 6a/6b/2a happened to have, and
+    // overlapped the next item whenever a definition wrapped to 3+
+    // lines. Same class of bug as vocabBlock's dynamic row height and
+    // detailPromptSlide's dynamic card height (both already fixed this
+    // session) -- estimate wrapped lines for THIS box width/font (16pt,
+    // leftW-0.3 wide, "word: " prefix counted in) and size the gap to
+    // match, floored so short definitions keep the original 0.66in look.
     block.vocabulary.forEach(v => {
       s.addShape("ellipse", { x: 0.6, y: y + 0.1, w: 0.11, h: 0.11, fill: { color: VIOLET }, line: { type: "none" } });
       // Same panel, same NAVY_INK correction as the Teaching Point body
@@ -672,7 +681,8 @@ if (ir || sa) {
       // suggested 110045.
       s.addText([{ text: `${v.word}: `, options: { bold: true, color: NAVY_INK } }, { text: v.definition, options: { color: NAVY_INK } }],
         { x: 0.85, y, w: leftW - 0.3, h: 0.65, fontFace: "Arial", fontSize: 16, margin: 0, valign: "top" });
-      y += 0.66;
+      const itemLines = Math.max(1, Math.ceil((`${v.word}: ${v.definition}`).length / ((leftW - 0.3) * 9.6)));
+      y += Math.max(0.66, 0.18 + itemLines * 0.24);
     });
   }
   if (block.chart) {
