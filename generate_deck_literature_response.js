@@ -318,6 +318,33 @@ function renderGroupedSections(sections, renderNonVocab, renderVocab) {
   });
 }
 
+// Simple list-based planner renderer (Strong Claim / Evidence and
+// Reasoning, etc.) -- new for this lesson (Lesson 5b fully reprints both
+// a Mentor "Literature Response Planner" and, later, a worked "Sample
+// Literature Response Planner" tied to this lesson's own prompt; neither
+// existed as example content in 6b, so this generator had no field for
+// it before). Simpler than generate_deck_writing.js's renderPlanner --
+// this lesson's planners are only ever label+bulleted-list sections, no
+// text/table sections -- so a dedicated, smaller renderer rather than
+// importing that more general one.
+function renderSimplePlanner(slide, title, sections, x, y, w, h) {
+  let cy = y;
+  if (title) {
+    slide.addText(title, { x, y, w, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
+    cy += 0.42;
+  }
+  sections.forEach(section => {
+    slide.addText(section.label, { x, y: cy, w, h: 0.28, fontFace: "Arial", fontSize: 15, bold: true, color: PURPLE, margin: 0 });
+    cy += 0.32;
+    (section.items || []).forEach(item => {
+      slide.addShape("ellipse", { x: x + 0.05, y: cy + 0.08, w: 0.09, h: 0.09, fill: { color: VIOLET }, line: { type: "none" } });
+      slide.addText(parseInlineMarkup(item), { x: x + 0.25, y: cy, w: w - 0.25, h: 0.5, fontFace: "Arial", fontSize: 12.5, color: NAVY_INK, margin: 0, valign: "top" });
+      cy += 0.34 + Math.floor(item.length / 95) * 0.2; // rough allowance for items that wrap to 2 lines
+    });
+    cy += 0.12;
+  });
+}
+
 let pageNum = 3;
 renderGroupedSections(
   lesson.sections,
@@ -327,6 +354,48 @@ renderGroupedSections(
       addHeaderGradient(s);
       slideTitle(s, `${section.section_name} Mentor Prompt`, false);
       promptBox(s, section.mentor_prompt, 0.55, 1.5, PAGE_W - 1.1, 2.2);
+      footer(s, pageNum++, false);
+    }
+    // Full mentor example text (a complete Literature Response, not a
+    // short prompt) -- promptBox's fixed 24pt "Prompt"-labeled box was
+    // built for short prompts and would badly overflow a ~180-word
+    // paragraph, so this gets its own plain-paragraph slide instead,
+    // labeled with the prompt the mentor is responding to.
+    if (section.mentor_text) {
+      const s = pres.addSlide();
+      addHeaderGradient(s);
+      slideTitle(s, `${section.section_name} Mentor Example`, false);
+      let y = 1.15;
+      if (section.mentor_text_prompt) {
+        s.addText("Literature Response Prompt", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 15, bold: true, color: CORAL, margin: 0 });
+        y += 0.32;
+        s.addText(parseInlineMarkup(section.mentor_text_prompt), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 15, italic: true, color: NAVY_INK, margin: 0 });
+        y += 0.55;
+      }
+      s.addText(parseInlineMarkup(section.mentor_text), { x: 0.55, y, w: PAGE_W - 1.1, h: PAGE_H - y - 0.6, fontFace: "Arial", fontSize: 14.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+      footer(s, pageNum++, false);
+    }
+    // "Qualities of a Strong Literature Response" -- a numbered criteria
+    // checklist, explicitly called out in this lesson type's own outline
+    // spec ("...criteria list... as referenced") but never exercised by
+    // 6b, which didn't reprint one.
+    if (section.criteria_list && section.criteria_list.length) {
+      const s = pres.addSlide();
+      addHeaderGradient(s);
+      slideTitle(s, "Qualities of a Strong Literature Response", false);
+      let y = 1.3;
+      section.criteria_list.forEach((item, i) => {
+        s.addText(`${i + 1}.`, { x: 0.55, y, w: 0.4, h: 0.6, fontFace: "Arial", fontSize: 17, bold: true, color: PURPLE, margin: 0 });
+        s.addText(parseInlineMarkup(item), { x: 0.95, y, w: PAGE_W - 1.5, h: 0.6, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
+        y += 0.7;
+      });
+      footer(s, pageNum++, false);
+    }
+    if (section.mentor_planner) {
+      const s = pres.addSlide();
+      addHeaderGradient(s);
+      slideTitle(s, `${section.section_name} Mentor Planner`, false);
+      renderSimplePlanner(s, section.mentor_planner.title, section.mentor_planner.sections, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
       footer(s, pageNum++, false);
     }
     if (section.claims_to_evaluate && section.claims_to_evaluate.length) {
@@ -388,6 +457,19 @@ if (lesson.literature_response_prompt) {
   // as stated since there's no counter-evidence for this instance.
   s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
   promptBox(s, lesson.literature_response_prompt, 0.55, 3.0, PAGE_W - 1.1, 1.4);
+  footer(s, pageNum++, false);
+}
+
+// ===== Slide: Sample Literature Response Planner -- a worked example
+// tied to THIS lesson's own literature_response_prompt (distinct from
+// the generic Launch-section mentor_planner above, which is about a
+// different, earlier prompt used purely to teach the format). New for
+// this lesson -- 6b didn't reprint one.
+if (lesson.sample_planner) {
+  const s = pres.addSlide();
+  addHeaderGradient(s);
+  slideTitle(s, "Sample Literature Response Planner", false);
+  renderSimplePlanner(s, "", lesson.sample_planner.sections, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
   footer(s, pageNum++, false);
 }
 

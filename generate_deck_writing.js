@@ -358,19 +358,24 @@ if (lesson.independent_writing) {
   footer(s, pageNum++, false);
 }
 
-// ===== Slide: Writers' Circle =====
-if (lesson.writers_circle && lesson.writers_circle.focus_points && lesson.writers_circle.focus_points.length) {
+// ===== Slide: Writers' Circle -- heading + Teaching Point only, matching
+// the outline's own wording for this slide ("includes teaching point...
+// criteria list, and/or prompt as relevant") and the established,
+// Ashley-confirmed pattern already in generate_deck_literature_response.js
+// for the identically-worded "Writers' Circle & Revise" slide there.
+// Previously rendered a "Focus for Feedback" bulleted list here, which
+// was wrong on two counts: it doesn't match this outline entry at all
+// (only Project's outline explicitly calls for "discussion/facilitation
+// focus points" -- Writing and Literature Response share the same
+// conservative wording, neither mentions it), and it's exactly the kind
+// of teacher-only facilitation content this pipeline otherwise excludes
+// everywhere else.
+if (lesson.teaching_point) {
   const s = pres.addSlide();
   addHeaderGradient(s);
   slideTitle(s, "Writers' Circle", false);
-  let y = 1.25;
-  s.addText("FOCUS FOR FEEDBACK", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
-  y += 0.5;
-  lesson.writers_circle.focus_points.forEach(point => {
-    s.addShape("ellipse", { x: 0.6, y: y + 0.1, w: 0.11, h: 0.11, fill: { color: VIOLET }, line: { type: "none" } });
-    s.addText(parseInlineMarkup(point), { x: 0.85, y, w: PAGE_W - 1.4, h: 0.7, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
-    y += 0.75;
-  });
+  s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
   footer(s, pageNum++, false);
 }
 
