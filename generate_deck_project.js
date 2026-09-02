@@ -69,6 +69,12 @@ function chunk(arr, size) {
 }
 function parseInlineMarkup(text) {
   if (!text) return [{ text: text || "" }];
+  // Same auto-underline safety net as generate_deck.js -- extraction
+  // isn't reliably tagging the core text title with <u> tags, so detect
+  // literal occurrences here rather than relying on it.
+  if (lesson.core_text && text.includes(lesson.core_text) && !text.includes(`<u>${lesson.core_text}</u>`)) {
+    text = text.split(lesson.core_text).join(`<u>${lesson.core_text}</u>`);
+  }
   const parts = [];
   const underlineRe = /<u>(.*?)<\/u>/g;
   let lastIndex = 0, m;
@@ -187,6 +193,10 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   s.addText(`LESSON ${lesson.lesson_number}`, { x: 0.55, y: 0.6, w: 1.9, h: 0.55, fontFace: "Arial", fontSize: 16, bold: true, color: NAVY_INK, align: "center", valign: "middle", margin: 0 });
   s.addText(`Lesson ${lesson.lesson_number}: ${lesson.lesson_type}`, { x: 0.55, y: 1.3, w: 12.2, h: 1.8, fontFace: "Arial", fontSize: 50, bold: true, color: WHITE, margin: 0, valign: "top" });
   s.addText(`Grade ${lesson.grade.replace('Grade ','')}, Knowledge Unit ${lesson.unit_number}: ${lesson.unit_title}`, { x: 0.55, y: 3.35, w: 12.2, h: 1.1, fontFace: "Arial", fontSize: 25.5, color: "E5EFF9", margin: 0, valign: "top" });
+  if (lesson.core_text) {
+    const byLine = lesson.author ? `${lesson.core_text} by ${lesson.author}` : lesson.core_text;
+    s.addText(parseInlineMarkup(`${byLine}${lesson.pages ? "   |   Pages " + lesson.pages : ""}`), { x: 0.55, y: 4.65, w: 12.2, h: 0.6, fontFace: "Arial", fontSize: 21.5, italic: true, color: "C9BEEB", margin: 0, valign: "top" });
+  }
   s.addText("Copyright \u00a9 2026 Lavinia Group. All Rights Reserved. RedThread is a trademark of K12 Coalition.", { x: 0.55, y: PAGE_H - 0.5, w: 11.5, h: 0.3, fontFace: "Arial", fontSize: 10, color: "9A8FD1", margin: 0 });
 }
 
