@@ -156,6 +156,30 @@ function estimateDefinitionLines(definition, colW) {
   const charsPerLine = (colW - 0.4) * 5.4; // empirically tuned for Arial 21.5pt
   return Math.max(1, Math.ceil(definition.length / charsPerLine));
 }
+// Same height-aware vocab chunking fix as generate_deck.js -- found via a
+// real Lesson 2a vocabulary review with longer definitions than 6a/6b had
+// ("Civil Rights Movement", "Supreme Court"), where the fixed
+// chunk(words, 4) let a second tall row push text past the bottom of the
+// slide. Ported here since this file has its own duplicate copy of
+// vocabBlock/estimateDefinitionLines with the same gap.
+function chunkVocabForHeight(words, colW, maxHeight) {
+  const groups = [];
+  let current = [], heightSoFar = 0, rowsInCurrent = 0;
+  for (let i = 0; i < words.length; i += 2) {
+    const rowWords = words.slice(i, i + 2);
+    const rowH = Math.max(2.7, ...rowWords.map(item => 1.0 + estimateDefinitionLines(item.definition, colW) * 0.34 + 0.25));
+    const gap = rowsInCurrent > 0 ? 0.15 : 0;
+    if (rowsInCurrent > 0 && (rowsInCurrent >= 2 || heightSoFar + gap + rowH > maxHeight)) {
+      groups.push(current);
+      current = []; heightSoFar = 0; rowsInCurrent = 0;
+    }
+    current = current.concat(rowWords);
+    heightSoFar += (rowsInCurrent > 0 ? 0.15 : 0) + rowH;
+    rowsInCurrent += 1;
+  }
+  if (current.length) groups.push(current);
+  return groups;
+}
 function vocabBlock(slide, words, x, y, w, onDark) {
   const colW = (w - 0.3) / 2;
   const cardBg = onDark ? WHITE : PEACH;
@@ -328,7 +352,8 @@ renderGroupedSections(
   },
   section => {
     if (section.vocabulary && section.vocabulary.length) {
-      chunk(section.vocabulary, 4).forEach((words, i) => {
+      const vocabColW = ((PAGE_W - 1.1) - 0.3) / 2;
+      chunkVocabForHeight(section.vocabulary, vocabColW, 5.65).forEach((words, i) => {
         const s = pres.addSlide();
         // RJ: gradient was missing here and elsewhere in this file --
         // same fix as generate_deck.js. Rendered all 18 real template
@@ -404,7 +429,8 @@ if (lesson.writers_circle) {
 
 // ===== Slides: Lesson Vocabulary Review -- purple bookend =====
 if (lesson.lesson_vocabulary_review && lesson.lesson_vocabulary_review.length) {
-  chunk(lesson.lesson_vocabulary_review, 4).forEach((words, i) => {
+  const reviewColW = ((PAGE_W - 1.1) - 0.3) / 2;
+  chunkVocabForHeight(lesson.lesson_vocabulary_review, reviewColW, 5.65).forEach((words, i) => {
     const s = pres.addSlide();
     s.background = { color: PURPLE };
     slideTitle(s, `Lesson Vocabulary Review${i > 0 ? " (continued)" : ""}`, true);

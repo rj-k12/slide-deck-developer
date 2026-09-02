@@ -297,6 +297,37 @@ function estimateDefinitionLines(definition, colW) {
   const charsPerLine = (colW - 0.4) * 5.4; // empirically tuned for Arial 21.5pt
   return Math.max(1, Math.ceil(definition.length / charsPerLine));
 }
+// Packs vocab words into per-slide groups (2 per row, up to 2 rows/4
+// words) that actually fit within maxHeight -- the fixed chunk(words, 4)
+// this replaced assumed every row would need the same ~2.7in default,
+// which broke on lessons with longer definitions than 6a/6b happened to
+// have (e.g. "Civil Rights Movement", "Supreme Court" on Lesson 2a's
+// vocabulary review): the per-row dynamic height already grew each row
+// for a long definition, but nothing checked whether the CUMULATIVE
+// height across multiple rows still fit the slide, so a second tall row
+// could push text past the bottom of the slide entirely. This keeps the
+// same "up to 4 words, 2 rows" visual density when definitions are short
+// (matching every slide that already worked), but drops to fewer words
+// per slide -- making more slides via the existing per-slide .forEach
+// caller -- when they'd genuinely overflow.
+function chunkVocabForHeight(words, colW, maxHeight) {
+  const groups = [];
+  let current = [], heightSoFar = 0, rowsInCurrent = 0;
+  for (let i = 0; i < words.length; i += 2) {
+    const rowWords = words.slice(i, i + 2);
+    const rowH = Math.max(2.7, ...rowWords.map(item => 1.0 + estimateDefinitionLines(item.definition, colW) * 0.34 + 0.25));
+    const gap = rowsInCurrent > 0 ? 0.15 : 0;
+    if (rowsInCurrent > 0 && (rowsInCurrent >= 2 || heightSoFar + gap + rowH > maxHeight)) {
+      groups.push(current);
+      current = []; heightSoFar = 0; rowsInCurrent = 0;
+    }
+    current = current.concat(rowWords);
+    heightSoFar += (rowsInCurrent > 0 ? 0.15 : 0) + rowH;
+    rowsInCurrent += 1;
+  }
+  if (current.length) groups.push(current);
+  return groups;
+}
 function vocabBlock(slide, words, x, y, w, onDark) {
   const colW = (w - 0.3) / 2;
   const cardBg = onDark ? WHITE : PEACH;
@@ -589,7 +620,8 @@ renderGroupedSections(
   },
   section => {
     if (section.vocabulary && section.vocabulary.length) {
-      chunk(section.vocabulary, 4).forEach((words, i) => {
+      const vocabColW = ((PAGE_W - 1.1) - 0.3) / 2;
+      chunkVocabForHeight(section.vocabulary, vocabColW, 5.65).forEach((words, i) => {
         const s = pres.addSlide();
         addHeaderGradient(s);
         if (section.section_name === "Launch") addDecorativeBg(s);
@@ -776,7 +808,8 @@ if (lesson.whole_class_discourse_prompt) {
 // ===== Slides: Lesson Vocabulary Review -- purple background bookend,
 // only words repeated in Closing =====
 if (lesson.lesson_vocabulary_review && lesson.lesson_vocabulary_review.length) {
-  chunk(lesson.lesson_vocabulary_review, 4).forEach((words, i) => {
+  const reviewColW = ((PAGE_W - 1.1) - 0.3) / 2;
+  chunkVocabForHeight(lesson.lesson_vocabulary_review, reviewColW, 5.65).forEach((words, i) => {
     const s = pres.addSlide();
     s.background = { color: PURPLE };
     slideTitle(s, `Lesson Vocabulary Review${i > 0 ? " (continued)" : ""}`, true);
