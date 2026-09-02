@@ -151,52 +151,68 @@ function vocabBlock(slide, words, x, y, w, onDark) {
 }
 
 // ===== Mentor / student planner renderer -- new for this lesson type.
-// Handles the 4 section shapes this real planner actually has (text,
-// list, list, table-with-bulleted-cells); each rendered compactly since
-// all four need to fit on one slide, matching how the source itself
-// prints this as a single dense page. =====
+// RJ pointed out the font sizes here (originally 10-13pt) had no real
+// basis -- unlike everything else in this deck, which traces back to an
+// actual template measurement, these were picked ad hoc just to force
+// four sections onto one slide without overflowing. Fixed properly:
+// sizes now match what the rest of this deck actually uses (16-21.5pt,
+// same range as read-directions/vocab text elsewhere), and the caller
+// splits a 4-section planner across two slides instead of cramming
+// everything onto one -- message + two lists on the first, the table
+// (which needs the most room) on its own.
 function renderPlanner(slide, planner, x, y, w, h) {
   let cy = y;
-  const rowH = h / (planner.sections.length <= 3 ? 3 : 3.6); // table section gets more room than a fixed 1/n split
   planner.sections.forEach(section => {
     if (section.type === "text") {
-      slide.addShape("roundRect", { x, y: cy, w, h: 0.75, rectRadius: 0.05, fill: { color: "FBE8AB" }, line: { type: "none" } });
-      slide.addText(section.label, { x: x + 0.15, y: cy + 0.05, w: w - 0.3, h: 0.25, fontFace: "Arial", fontSize: 13, bold: true, color: CORAL, margin: 0 });
-      slide.addText(section.content || "[to be completed]", { x: x + 0.15, y: cy + 0.3, w: w - 0.3, h: 0.4, fontFace: "Arial", fontSize: 13, italic: !section.content, color: section.content ? NAVY_INK : MUTED, margin: 0, valign: "top" });
-      cy += 0.85;
+      // RJ: message text was overflowing the box -- fixed 0.85in height
+      // assumed ~1 line of content, but this section's real text
+      // ("Sometimes changes that feel devastating...") wraps to 2 lines
+      // at the current font size, needing more like 0.75in. Same
+      // dynamic-height fix used elsewhere in this deck (detailPromptSlide,
+      // vocabBlock): grow the box to fit the actual wrapped line count
+      // instead of assuming a fixed size.
+      const text = section.content || "[to be completed]";
+      const charsPerLine = (w - 0.4) * 6.6;
+      const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+      const boxH = Math.max(0.85, 0.42 + lines * 0.3);
+      slide.addShape("roundRect", { x, y: cy, w, h: boxH, rectRadius: 0.06, fill: { color: "FBE8AB" }, line: { type: "none" } });
+      slide.addText(section.label, { x: x + 0.2, y: cy + 0.08, w: w - 0.4, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: CORAL, margin: 0 });
+      slide.addText(text, { x: x + 0.2, y: cy + 0.4, w: w - 0.4, h: boxH - 0.48, fontFace: "Arial", fontSize: 16, italic: !section.content, color: section.content ? NAVY_INK : MUTED, margin: 0, valign: "top" });
+      cy += boxH + 0.15;
     } else if (section.type === "list") {
       // Two "list" sections render side by side (Protagonist / Change
       // Protagonist Faces in the real planner) -- handled by the caller
       // passing a half-width w for these two calls instead of looping
       // them here, so this branch just renders whatever width it's given.
-      slide.addText(section.label, { x, y: cy, w, h: 0.25, fontFace: "Arial", fontSize: 13, bold: true, color: CORAL, margin: 0 });
-      let iy = cy + 0.28;
+      slide.addText(section.label, { x, y: cy, w, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: CORAL, margin: 0 });
+      let iy = cy + 0.36;
       if (section.items && section.items.length) {
         section.items.forEach(item => {
-          slide.addText(`\u2022 ${item}`, { x, y: iy, w, h: 0.28, fontFace: "Arial", fontSize: 12, color: NAVY_INK, margin: 0, valign: "top" });
-          iy += 0.26;
+          slide.addText(`\u2022 ${item}`, { x, y: iy, w, h: 0.4, fontFace: "Arial", fontSize: 15, color: NAVY_INK, margin: 0, valign: "top" });
+          iy += 0.4;
         });
       } else {
-        slide.addText("[to be completed]", { x, y: iy, w, h: 0.28, fontFace: "Arial", fontSize: 12, italic: true, color: MUTED, margin: 0 });
+        slide.addText("[to be completed]", { x, y: iy, w, h: 0.3, fontFace: "Arial", fontSize: 15, italic: true, color: MUTED, margin: 0 });
       }
     } else if (section.type === "table") {
-      slide.addText(section.label, { x, y: cy, w, h: 0.25, fontFace: "Arial", fontSize: 13, bold: true, color: CORAL, margin: 0 });
-      cy += 0.3;
+      slide.addText(section.label, { x, y: cy, w, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: CORAL, margin: 0 });
+      cy += 0.38;
       const tableH = y + h - cy;
       const headerRow = section.columns.map(c => ({
-        text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Arial", fontSize: 11, border: { type: "solid", color: PURPLE, pt: 1 } }
+        text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Arial", fontSize: 14, border: { type: "solid", color: PURPLE, pt: 1 } }
       }));
       const bodyCells = section.columns.map((_, ci) => {
         const cellItems = (section.rows && section.rows[0] && section.rows[0][ci]) || [];
         const text = cellItems.length
           ? cellItems.map(item => ({ text: item, options: { bullet: { code: "2022" }, breakLine: true } }))
           : "[to be completed]";
-        return { text, options: { color: cellItems.length ? BODY : MUTED, italic: !cellItems.length, fontFace: "Arial", fontSize: 10, valign: "top", fill: { color: WHITE }, border: { type: "solid", color: TABLE_BORDER_BODY, pt: 1 } } };
+        return { text, options: { color: cellItems.length ? BODY : MUTED, italic: !cellItems.length, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: WHITE }, border: { type: "solid", color: TABLE_BORDER_BODY, pt: 1 } } };
       });
-      slide.addTable([headerRow, bodyCells], { x, y: cy, w, h: tableH, fontFace: "Arial", autoPage: false, rowH: [0.35, tableH - 0.35] });
+      slide.addTable([headerRow, bodyCells], { x, y: cy, w, h: tableH, fontFace: "Arial", autoPage: false, rowH: [0.4, tableH - 0.4] });
       cy += tableH;
     }
   });
+  return cy;
 }
 
 let pageNum = 2;
@@ -288,32 +304,38 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
   }
 });
 
-// ===== Slide: Mentor Planner -- reference example, fully filled in
-// (this lesson's own real content, not invented) =====
+// ===== Slides: Mentor Planner -- reference example, fully filled in
+// (this lesson's own real content, not invented). Split across two
+// slides (message+lists, then the table) so nothing needs a
+// smaller-than-the-rest-of-the-deck font to fit. =====
 if (lesson.mentor_planner) {
-  const s = pres.addSlide();
-  addHeaderGradient(s);
-  slideTitle(s, "Mentor Planner", false);
   const p = lesson.mentor_planner;
   const textSection = p.sections.find(sec => sec.type === "text");
   const listSections = p.sections.filter(sec => sec.type === "list");
   const tableSection = p.sections.find(sec => sec.type === "table");
-  let y = 1.15;
-  if (textSection) {
-    renderPlanner(s, { sections: [textSection] }, 0.55, y, PAGE_W - 1.1, 0.85);
-    y += 0.95;
-  }
-  if (listSections.length) {
-    const halfW = (PAGE_W - 1.1 - 0.3) / 2;
-    listSections.forEach((sec, i) => {
-      renderPlanner(s, { sections: [sec] }, 0.55 + i * (halfW + 0.3), y, halfW, 1.0);
-    });
-    y += 1.15;
+  if (textSection || listSections.length) {
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, "Mentor Planner", false);
+    let y = 1.15;
+    if (textSection) {
+      y = renderPlanner(s, { sections: [textSection] }, 0.55, y, PAGE_W - 1.1, 1.0) + 0.15;
+    }
+    if (listSections.length) {
+      const halfW = (PAGE_W - 1.1 - 0.3) / 2;
+      listSections.forEach((sec, i) => {
+        renderPlanner(s, { sections: [sec] }, 0.55 + i * (halfW + 0.3), y, halfW, PAGE_H - y - 0.6);
+      });
+    }
+    footer(s, pageNum++, false);
   }
   if (tableSection) {
-    renderPlanner(s, { sections: [tableSection] }, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, "Mentor Planner (continued)", false);
+    renderPlanner(s, { sections: [tableSection] }, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
+    footer(s, pageNum++, false);
   }
-  footer(s, pageNum++, false);
 }
 
 // ===== Slide: Independent Writing =====
@@ -323,39 +345,53 @@ if (lesson.independent_writing) {
   addHeaderGradient(s);
   slideTitle(s, "Independent Writing", false);
   let y = 1.15;
+  // Same fix as the Mentor Planner slides -- 13pt here had no basis
+  // either, just picked to leave room for the planner below on the same
+  // slide. Now matches the 16-21.5pt range used elsewhere in this deck
+  // (Read Directions text, vocab definitions).
   if (lesson.teaching_point) {
-    s.addText("TEACHING POINT", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: CORAL, margin: 0 });
-    y += 0.35;
-    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.7, fontFace: "Arial", fontSize: 13, color: NAVY_INK, margin: 0, valign: "top" });
-    y += 0.75;
+    s.addText("TEACHING POINT", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 18, bold: true, color: CORAL, margin: 0 });
+    y += 0.38;
+    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.0, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
+    y += 1.05;
   }
   if (iw.directions) {
-    s.addText(parseInlineMarkup(iw.directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.65, fontFace: "Arial", fontSize: 13, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
-    y += 0.7;
+    s.addText(parseInlineMarkup(iw.directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 17, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
   }
-  if (iw.planner) {
-    const p = iw.planner;
-    s.addText(p.title, { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: CORAL, margin: 0 });
-    y += 0.35;
-    const textSection = p.sections.find(sec => sec.type === "text");
-    const listSections = p.sections.filter(sec => sec.type === "list");
-    const tableSection = p.sections.find(sec => sec.type === "table");
+  footer(s, pageNum++, false);
+}
+
+// ===== Slides: student's own (blank) planner -- split onto its own
+// slide(s) for the same reason as the Mentor Planner above, rather than
+// sharing a slide with the Teaching Point/directions text. =====
+if (lesson.independent_writing && lesson.independent_writing.planner) {
+  const p = lesson.independent_writing.planner;
+  const textSection = p.sections.find(sec => sec.type === "text");
+  const listSections = p.sections.filter(sec => sec.type === "list");
+  const tableSection = p.sections.find(sec => sec.type === "table");
+  if (textSection || listSections.length) {
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, p.title, false);
+    let y = 1.15;
     if (textSection) {
-      renderPlanner(s, { sections: [textSection] }, 0.55, y, PAGE_W - 1.1, 0.7);
-      y += 0.8;
+      y = renderPlanner(s, { sections: [textSection] }, 0.55, y, PAGE_W - 1.1, 1.0) + 0.15;
     }
     if (listSections.length) {
       const halfW = (PAGE_W - 1.1 - 0.3) / 2;
       listSections.forEach((sec, i) => {
-        renderPlanner(s, { sections: [sec] }, 0.55 + i * (halfW + 0.3), y, halfW, 0.7);
+        renderPlanner(s, { sections: [sec] }, 0.55 + i * (halfW + 0.3), y, halfW, PAGE_H - y - 0.6);
       });
-      y += 0.8;
     }
-    if (tableSection) {
-      renderPlanner(s, { sections: [tableSection] }, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
-    }
+    footer(s, pageNum++, false);
   }
-  footer(s, pageNum++, false);
+  if (tableSection) {
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, `${p.title} (continued)`, false);
+    renderPlanner(s, { sections: [tableSection] }, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
+    footer(s, pageNum++, false);
+  }
 }
 
 // ===== Slide: Writers' Circle -- heading + Teaching Point only, matching
