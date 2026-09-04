@@ -261,6 +261,19 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
     s.addText(parseInlineMarkup(section.activity_text), { x: 0.55, y: 1.15, w: PAGE_W - 1.1, h: PAGE_H - 1.75, fontFace: "Arial", fontSize: 16, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
     footer(s, pageNum++, false);
   }
+  // Ashley: new "Background Knowledge Directions" slide, inserted after
+  // the vocab slide, with the bolded video-watching directions from the
+  // lesson -- same visual treatment as a Reading section's
+  // read_directions slide, just its own field since "activity_text" is
+  // reserved for the longer Launch-style narrative and titles itself
+  // "... Activity" rather than "... Directions".
+  if (section.directions_text) {
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, `${section.section_name} Directions`, false);
+    s.addText(parseInlineMarkup(section.directions_text), { x: 0.55, y: 1.15, w: PAGE_W - 1.1, h: 1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+    footer(s, pageNum++, false);
+  }
   if (section.vocabulary && section.vocabulary.length) {
     const vocabColW = ((PAGE_W - 1.1) - 0.3) / 2;
     chunkVocabForHeight(section.vocabulary, vocabColW, 5.65).forEach((words, i) => {
