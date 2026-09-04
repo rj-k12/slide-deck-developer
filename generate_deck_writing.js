@@ -206,7 +206,10 @@ function renderPlanner(slide, planner, x, y, w, h) {
         const text = cellItems.length
           ? cellItems.map(item => ({ text: item, options: { bullet: { code: "2022" }, breakLine: true } }))
           : "[to be completed]";
-        return { text, options: { color: cellItems.length ? BODY : MUTED, italic: !cellItems.length, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: WHITE }, border: { type: "solid", color: TABLE_BORDER_BODY, pt: 1 } } };
+        // Ashley: "update font color for the text in the last row to hex
+        // #0e0142" -- table cell text was BODY (33322E); switching to
+        // NAVY_INK (0E0142) as she specified.
+        return { text, options: { color: cellItems.length ? NAVY_INK : MUTED, italic: !cellItems.length, fontFace: "Arial", fontSize: 13, valign: "top", fill: { color: WHITE }, border: { type: "solid", color: TABLE_BORDER_BODY, pt: 1 } } };
       });
       slide.addTable([headerRow, bodyCells], { x, y: cy, w, h: tableH, fontFace: "Arial", autoPage: false, rowH: [0.4, tableH - 0.4] });
       cy += tableH;
@@ -345,54 +348,29 @@ if (lesson.independent_writing) {
   addHeaderGradient(s);
   slideTitle(s, "Independent Writing", false);
   let y = 1.15;
-  // Same fix as the Mentor Planner slides -- 13pt here had no basis
-  // either, just picked to leave room for the planner below on the same
-  // slide. Now matches the 16-21.5pt range used elsewhere in this deck
-  // (Read Directions text, vocab definitions).
+  // Ashley: "update font size to match the Writers' Circle slide in this
+  // deck (slide 10)" -- that slide uses 22pt for the "Teaching Point"
+  // label and 21.5pt (DETAIL_DESC_COLOR) for the body; matching both
+  // exactly here instead of the smaller, inconsistent 18/17pt this had.
   if (lesson.teaching_point) {
-    s.addText("TEACHING POINT", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 18, bold: true, color: CORAL, margin: 0 });
-    y += 0.38;
-    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.0, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
-    y += 1.05;
+    s.addText("Teaching Point", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+    y += 0.42;
+    s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+    y += 1.15;
   }
   if (iw.directions) {
-    s.addText(parseInlineMarkup(iw.directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 17, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+    s.addText(parseInlineMarkup(iw.directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
   }
   footer(s, pageNum++, false);
 }
 
-// ===== Slides: student's own (blank) planner -- split onto its own
-// slide(s) for the same reason as the Mentor Planner above, rather than
-// sharing a slide with the Teaching Point/directions text. =====
-if (lesson.independent_writing && lesson.independent_writing.planner) {
-  const p = lesson.independent_writing.planner;
-  const textSection = p.sections.find(sec => sec.type === "text");
-  const listSections = p.sections.filter(sec => sec.type === "list");
-  const tableSection = p.sections.find(sec => sec.type === "table");
-  if (textSection || listSections.length) {
-    const s = pres.addSlide();
-    addHeaderGradient(s);
-    slideTitle(s, p.title, false);
-    let y = 1.15;
-    if (textSection) {
-      y = renderPlanner(s, { sections: [textSection] }, 0.55, y, PAGE_W - 1.1, 1.0) + 0.15;
-    }
-    if (listSections.length) {
-      const halfW = (PAGE_W - 1.1 - 0.3) / 2;
-      listSections.forEach((sec, i) => {
-        renderPlanner(s, { sections: [sec] }, 0.55 + i * (halfW + 0.3), y, halfW, PAGE_H - y - 0.6);
-      });
-    }
-    footer(s, pageNum++, false);
-  }
-  if (tableSection) {
-    const s = pres.addSlide();
-    addHeaderGradient(s);
-    slideTitle(s, `${p.title} (continued)`, false);
-    renderPlanner(s, { sections: [tableSection] }, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
-    footer(s, pageNum++, false);
-  }
-}
+// Ashley: "remove slide, since teachers are not told to display this in
+// the lesson" (said on both halves of the blank student planner --
+// slides 8 and 9). The lesson's own script never instructs the teacher
+// to project a blank planner; students just fill it in on their own
+// worksheet/portfolio. Removed entirely -- the mentor_planner slides
+// above (the filled-in reference example teachers ARE told to display)
+// are unaffected.
 
 // ===== Slide: Writers' Circle -- heading + Teaching Point only, matching
 // the outline's own wording for this slide ("includes teaching point...
@@ -409,7 +387,10 @@ if (lesson.independent_writing && lesson.independent_writing.planner) {
 if (lesson.teaching_point) {
   const s = pres.addSlide();
   addHeaderGradient(s);
-  slideTitle(s, "Writers' Circle", false);
+  // Ashley: "edit title to: Writers' Circle & Revise" -- matches the
+  // established title in generate_deck_literature_response.js for this
+  // identically-scoped slide.
+  slideTitle(s, "Writers' Circle & Revise", false);
   s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
   s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
   footer(s, pageNum++, false);
