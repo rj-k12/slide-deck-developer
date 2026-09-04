@@ -528,13 +528,23 @@ function addDecorativeBg(slide) {
 // reasoning (same rule, same underlying problem: extract_lesson.py's
 // extraction order tends to mirror the source document's own scattered
 // inline definition order, not the order slides should render in).
+// Was previously grouped-then-batched (all non-vocab content across every
+// section sharing a name, THEN all their vocab) -- that's fine when a
+// name only ever has one entry (every existing lesson so far), but it
+// silently forces non-vocab before vocab even when a lesson is split into
+// multiple same-named entries specifically to control ordering (Lesson
+// 2a: Ashley wants the Launch video-directions slide to come AFTER
+// Launch Vocabulary, so that lesson now has two separate "Launch"
+// entries -- vocab-only, then directions-only -- expecting them
+// rendered in that exact array order). Simplified to strict per-entry
+// sequential processing (each entry's own non-vocab then its own vocab,
+// no cross-entry batching) since no existing lesson actually relied on
+// the batching behavior -- every current single-entry section renders
+// identically either way.
 function renderGroupedSections(sections, renderNonVocab, renderVocab) {
-  const names = [];
-  (sections || []).forEach(s => { if (!names.includes(s.section_name)) names.push(s.section_name); });
-  names.forEach(name => {
-    const group = (sections || []).filter(s => s.section_name === name);
-    group.forEach(section => renderNonVocab(section));
-    group.forEach(section => renderVocab(section));
+  (sections || []).forEach(section => {
+    renderNonVocab(section);
+    renderVocab(section);
   });
 }
 
@@ -642,6 +652,14 @@ if (ir || sa) {
   const s = pres.addSlide();
   addHeaderGradient(s);
   slideTitle(s, title, false);
+  // RJ: page numbers were coming out of order -- a continuation slide
+  // (added below if the vocab list overflows) got a LOWER footer number
+  // than this slide, because this slide's own footer(s, pageNum++, ...)
+  // used to fire only at the very end, after any continuation slide had
+  // already claimed a pageNum first. Claiming s's number immediately,
+  // before anything that might spawn a later slide, fixes the ordering
+  // regardless of what happens afterward.
+  footer(s, pageNum++, false);
   const leftW = 6.6;
   let y = 1.1;
   // Ashley: "template has this as all caps" -- confirmed against the
@@ -662,33 +680,46 @@ if (ir || sa) {
     y += 1.15;
   }
   if (block.vocabulary && block.vocabulary.length) {
-    s.addText("IMPORTANT VOCABULARY", { x: 0.55, y, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
-    y += 0.42;
-    // RJ (found via a real Lesson 1 example, "discrimination"'s 3-line
-    // definition): the fixed 0.66in per-item increment below was tuned
-    // for ~2-line definitions like 6a/6b/2a happened to have, and
-    // overlapped the next item whenever a definition wrapped to 3+
-    // lines. Same class of bug as vocabBlock's dynamic row height and
-    // detailPromptSlide's dynamic card height (both already fixed this
-    // session) -- estimate wrapped lines for THIS box width/font (16pt,
-    // leftW-0.3 wide, "word: " prefix counted in) and size the gap to
-    // match, floored so short definitions keep the original 0.66in look.
+    // RJ (found via Lesson 2a's Shared Analysis, which now has 4 terms
+    // instead of 1): even with the per-item dynamic height fix above,
+    // nothing checked whether the vocab list as a WHOLE still fit below
+    // the Teaching Point + read-directions box already on this slide --
+    // a longer list just ran off the bottom of the slide into the
+    // footer. Same class of bug as the vocab-card overflow fixed earlier
+    // this session, just in this differently-shaped panel. Paginates
+    // onto "{title} (continued)" slides now instead, matching how
+    // vocabBlock's card grids already do this.
+    let vocabSlide = s, vocabY = y, itemsOnSlide = 0;
+    vocabSlide.addText("IMPORTANT VOCABULARY", { x: 0.55, y: vocabY, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
+    vocabY += 0.42;
     block.vocabulary.forEach(v => {
-      s.addShape("ellipse", { x: 0.6, y: y + 0.1, w: 0.11, h: 0.11, fill: { color: VIOLET }, line: { type: "none" } });
+      const itemLines = Math.max(1, Math.ceil((`${v.word}: ${v.definition}`).length / ((leftW - 0.3) * 9.6)));
+      const itemH = Math.max(0.66, 0.18 + itemLines * 0.24);
+      if (itemsOnSlide > 0 && vocabY + itemH > PAGE_H - 0.6) {
+        if (vocabSlide !== s) footer(vocabSlide, pageNum++, false);
+        vocabSlide = pres.addSlide();
+        addHeaderGradient(vocabSlide);
+        slideTitle(vocabSlide, `${title} (continued)`, false);
+        vocabY = 1.15;
+        itemsOnSlide = 0;
+        vocabSlide.addText("IMPORTANT VOCABULARY", { x: 0.55, y: vocabY, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
+        vocabY += 0.42;
+      }
+      vocabSlide.addShape("ellipse", { x: 0.6, y: vocabY + 0.1, w: 0.11, h: 0.11, fill: { color: VIOLET }, line: { type: "none" } });
       // Same panel, same NAVY_INK correction as the Teaching Point body
       // above -- the [word]: is already NAVY_INK (matches template); the
       // definition was BODY, template shows it's NAVY_INK too, not Ashley's
       // suggested 110045.
-      s.addText([{ text: `${v.word}: `, options: { bold: true, color: NAVY_INK } }, { text: v.definition, options: { color: NAVY_INK } }],
-        { x: 0.85, y, w: leftW - 0.3, h: 0.65, fontFace: "Arial", fontSize: 16, margin: 0, valign: "top" });
-      const itemLines = Math.max(1, Math.ceil((`${v.word}: ${v.definition}`).length / ((leftW - 0.3) * 9.6)));
-      y += Math.max(0.66, 0.18 + itemLines * 0.24);
+      vocabSlide.addText([{ text: `${v.word}: `, options: { bold: true, color: NAVY_INK } }, { text: v.definition, options: { color: NAVY_INK } }],
+        { x: 0.85, y: vocabY, w: leftW - 0.3, h: 0.65, fontFace: "Arial", fontSize: 16, margin: 0, valign: "top" });
+      vocabY += itemH;
+      itemsOnSlide++;
     });
+    if (vocabSlide !== s) footer(vocabSlide, pageNum++, false);
   }
   if (block.chart) {
     addChart(s, block.chart, 7.4, 1.1, PAGE_W - 7.95, PAGE_H - 1.7);
   }
-  footer(s, pageNum++, false);
 }
 
 // ===== Slide: Quick Write & Discourse Clubs -- pale pink dashed boxes.

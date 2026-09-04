@@ -153,7 +153,7 @@ function vocabBlock(slide, words, x, y, w, onDark) {
 // generate_deck.js's addChart, reused verbatim for the Project planner
 // table below (a Historical Figure Fact Card Planner is structurally the
 // same "columns + blank fill-in rows" shape as a Reading chart).
-function addChart(slide, chart, x, y, w, h) {
+function addChart(slide, chart, x, y, w, h, columnColors) {
   const nRows = (chart.rows && chart.rows.length) || 4;
   const headerBorder = { type: "solid", color: PURPLE, pt: 1 };
   const bodyBorder = { type: "solid", color: TABLE_BORDER_BODY, pt: 1 };
@@ -165,7 +165,12 @@ function addChart(slide, chart, x, y, w, h) {
     const zebra = r % 2 === 1;
     const cells = chart.columns.map((_, ci) => {
       const cell = (chart.rows && chart.rows[r]) ? chart.rows[r][ci] : "";
-      return { text: cell, options: { color: BODY, fontFace: "Arial", fontSize: 12.5, valign: "top", fill: { color: zebra ? PEACH : WHITE }, border: bodyBorder } };
+      // Ashley: "Update the font color of the text in the Research
+      // Question column to Hex #0e0142" -- only that column, so an
+      // optional per-column color override instead of the uniform BODY
+      // every cell used before.
+      const cellColor = (columnColors && columnColors[ci]) || BODY;
+      return { text: cell, options: { color: cellColor, fontFace: "Arial", fontSize: 12.5, valign: "top", fill: { color: zebra ? PEACH : WHITE }, border: bodyBorder } };
     });
     bodyRows.push(cells);
   }
@@ -270,38 +275,73 @@ if (coverImagePath && fs.existsSync(coverImagePath)) {
 // slide titles should match the lesson's actual section titles, not a
 // generic placeholder) =====
 (lesson.work_periods || []).forEach(wp => {
-  const s = pres.addSlide();
-  addHeaderGradient(s);
-  slideTitle(s, wp.section_name, false);
-  let y = 1.25;
-  if (wp.directions) {
-    s.addText(parseInlineMarkup(wp.directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.3, fontFace: "Arial", fontSize: 18, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
-    y += (wp.planner ? 1.5 : 0); // only reserve extra space above the planner; a plain directions-only slide can use the full body
-  }
-  if (wp.planner) {
-    const p = wp.planner;
-    s.addText(p.title, { x: 0.55, y, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
-    y += 0.42;
-    if (p.intro_field) {
-      s.addText(p.intro_field, { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: NAVY_INK, margin: 0 });
-      y += 0.4;
+  if (wp.directions || wp.planner) {
+    // Ashley: "Add Teaching Point below the slide heading, based on
+    // instructions in the 'Project Lesson' section of the Knowledge
+    // Slide Template Outlines doc" -- and "Insert a new slide after this
+    // one called 'Create Resource'... and move the Historical Figure
+    // Fact Card Planner to that slide" -- directions and the planner
+    // table now split across two slides instead of sharing one, with the
+    // Teaching Point on the first.
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, wp.section_name, false);
+    let y = 1.15;
+    if (lesson.teaching_point) {
+      s.addText("Teaching Point", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 18, bold: true, color: CORAL, margin: 0 });
+      y += 0.36;
+      s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.9, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
+      y += 1.0;
     }
-    addChart(s, { columns: p.columns, rows: p.rows }, 0.55, y, PAGE_W - 1.1, PAGE_H - y - 0.6);
+    if (wp.directions) {
+      // Ashley: "Instead of pulling from scripting, have this text say
+      // the bolded teacher directions..." -- wp.directions in the JSON
+      // now holds that literal bolded direction instead of the narrative
+      // scripting line that was there before.
+      s.addText(parseInlineMarkup(wp.directions), { x: 0.55, y, w: PAGE_W - 1.1, h: 1.3, fontFace: "Arial", fontSize: 18, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+    }
+    footer(s, pageNum++, false);
+    if (wp.planner) {
+      const p = wp.planner;
+      const s2 = pres.addSlide();
+      addHeaderGradient(s2);
+      slideTitle(s2, `${wp.section_name} Resource`, false);
+      let py = 1.15;
+      s2.addText(p.title, { x: 0.55, y: py, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
+      py += 0.42;
+      if (p.intro_field) {
+        s2.addText(p.intro_field, { x: 0.55, y: py, w: PAGE_W - 1.1, h: 0.3, fontFace: "Arial", fontSize: 16, bold: true, color: NAVY_INK, margin: 0 });
+        py += 0.4;
+      }
+      // Ashley: "Update the font color of the text in the Research
+      // Question column to Hex #0e0142" -- first column only, Notes
+      // column keeps the default.
+      addChart(s2, { columns: p.columns, rows: p.rows }, 0.55, py, PAGE_W - 1.1, PAGE_H - py - 0.6, [NAVY_INK]);
+      footer(s2, pageNum++, false);
+    }
+  } else if (wp.section_name === "Creators' Circle") {
+    // Ashley: "Make this slide titled 'Creators' Circle & Revise', like
+    // slide 10 in the Lesson 6b deck. Just include the teaching point
+    // below the title." -- and a follow-up marking the "Focus for
+    // Feedback" list as "teacher-facing only" to remove. This directly
+    // supersedes the earlier reading of the outline's "discussion/
+    // facilitation focus points" line for Project Work Period slides --
+    // Ashley's explicit correction wins over that generic reading, and
+    // now matches the same heading+Teaching-Point-only pattern already
+    // established for Literature Response and Writing's identically-named
+    // slide.
+    const s = pres.addSlide();
+    addHeaderGradient(s);
+    slideTitle(s, "Creators' Circle & Revise", false);
+    if (lesson.teaching_point) {
+      s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+      s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+    }
+    footer(s, pageNum++, false);
   }
-  if (wp.focus_points && wp.focus_points.length) {
-    // Discussion/facilitation focus points -- the outline explicitly
-    // calls these out as content to include for a Circle-type slide
-    // (unlike "Key Ideas"/"Ask:" elsewhere in the source, which are
-    // excluded as teacher-only facilitation notes).
-    s.addText("FOCUS FOR FEEDBACK", { x: 0.55, y, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
-    y += 0.5;
-    wp.focus_points.forEach(point => {
-      s.addShape("ellipse", { x: 0.6, y: y + 0.1, w: 0.11, h: 0.11, fill: { color: VIOLET }, line: { type: "none" } });
-      s.addText(parseInlineMarkup(point), { x: 0.85, y, w: PAGE_W - 1.4, h: 0.7, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
-      y += 0.75;
-    });
-  }
-  footer(s, pageNum++, false);
+  // Ashley: "remove this slide" on Revise -- section_name "Revise" no
+  // longer appears in lesson_4b_REAL.json's work_periods at all, so
+  // there's nothing left to render it; no explicit branch needed here.
 });
 
 // ===== Slide: Closing =====

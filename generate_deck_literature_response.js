@@ -211,9 +211,20 @@ function vocabBlock(slide, words, x, y, w, onDark) {
   });
 }
 function promptBox(slide, prompt, x, y, w, h) {
-  slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.06, fill: { color: PINK_PALE }, line: { color: PINK_BORDER, width: 1.5, dashType: "dash" } });
+  // RJ/Ashley pattern (recurring this session): a fixed height doesn't
+  // account for how many lines the prompt actually wraps to at a given
+  // width -- this box overflowed once the Literature Response slide's
+  // narrower two-column layout made the same prompt text wrap to more
+  // lines than the old fixed h assumed. Computing the real height needed
+  // at fontSize 24 for THIS width instead of trusting the caller's h
+  // blindly (h is now used as a floor, not the final height).
+  const charsPerLine = (w - 0.6) * 5.0;
+  const lines = Math.max(1, Math.ceil((prompt || "").length / charsPerLine));
+  const boxH = Math.max(h, 0.7 + lines * 0.4);
+  slide.addShape("roundRect", { x, y, w, h: boxH, rectRadius: 0.06, fill: { color: PINK_PALE }, line: { color: PINK_BORDER, width: 1.5, dashType: "dash" } });
   slide.addText("Prompt", { x: x + 0.3, y: y + 0.15, w: w - 0.6, h: 0.35, fontFace: "Arial", fontSize: 24, bold: true, color: PURPLE, margin: 0 });
-  slide.addText(parseInlineMarkup(prompt), { x: x + 0.3, y: y + 0.55, w: w - 0.6, h: h - 0.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  slide.addText(parseInlineMarkup(prompt), { x: x + 0.3, y: y + 0.55, w: w - 0.6, h: boxH - 0.7, fontFace: "Arial", fontSize: 24, color: NAVY_INK, margin: 0, valign: "top" });
+  return boxH;
 }
 
 // ===== Slide: Cover (page 1 of the real template) =====
@@ -308,13 +319,19 @@ function addDecorativeBg(slide) {
 // separate section objects sharing one section_name (this lesson's
 // actual case), and a single object that happens to carry vocabulary
 // alongside other fields together.
+// Simplified to strict per-entry sequential processing (same fix as
+// generate_deck.js) -- was previously grouped-then-batched (all
+// non-vocab content across every same-named section, then all their
+// vocab), which silently forced non-vocab before vocab even when a
+// lesson is deliberately split into multiple same-named entries to
+// control ordering. Ashley: "After [the Mentor Example] slide should be
+// a Launch Vocabulary slide" -- this lesson's Launch section is now two
+// entries (mentor content, then vocab-only) expecting exactly that
+// array order.
 function renderGroupedSections(sections, renderNonVocab, renderVocab) {
-  const names = [];
-  (sections || []).forEach(s => { if (!names.includes(s.section_name)) names.push(s.section_name); });
-  names.forEach(name => {
-    const group = (sections || []).filter(s => s.section_name === name);
-    group.forEach(section => renderNonVocab(section));
-    group.forEach(section => renderVocab(section));
+  (sections || []).forEach(section => {
+    renderNonVocab(section);
+    renderVocab(section);
   });
 }
 
@@ -333,7 +350,7 @@ function renderGroupedSections(sections, renderNonVocab, renderVocab) {
 // slide, so a section's own label+items are never split across a page
 // boundary mid-list.
 function estimatePlannerSectionHeight(section, w) {
-  const charsPerLine = (w - 0.3) * 6.6;
+  const charsPerLine = (w - 0.3) * 9.5; // recalibrated: 6.6 under-estimated chars/line, causing uneven gaps when a 1-line item got 2-line spacing reserved for it (Ashley: "Bullets are unevenly spaced here")
   let h = 0.38; // label
   (section.items || []).forEach(item => {
     const lines = Math.max(1, Math.ceil(item.length / charsPerLine));
@@ -379,7 +396,7 @@ function renderSimplePlanner(slide, title, sections, x, y, w, h) {
       // wrapped-line estimate for the new, larger font (fewer characters
       // fit per line at 16pt than the old 12.5pt did) so items still get
       // enough vertical room and don't overlap the next one.
-      const charsPerLine = (w - 0.3) * 6.6;
+      const charsPerLine = (w - 0.3) * 9.5; // recalibrated: 6.6 under-estimated chars/line, causing uneven gaps when a 1-line item got 2-line spacing reserved for it (Ashley: "Bullets are unevenly spaced here")
       const lines = Math.max(1, Math.ceil(item.length / charsPerLine));
       cy += 0.28 + lines * 0.3;
     });
@@ -414,13 +431,14 @@ renderGroupedSections(
         s.addText(parseInlineMarkup(section.mentor_text_prompt), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 15, italic: true, color: NAVY_INK, margin: 0 });
         y += 0.55;
       }
-      // RJ: hard to read. Root cause was line length, not font size --
-      // this ran the text the full 12.2in slide width, so each line was
-      // ~140 characters, well past a comfortable reading measure. Capped
-      // the box at 9in (roughly 80-90 characters/line at this size) and
-      // added lineSpacingMultiple so lines have room to breathe, rather
-      // than just shrinking or enlarging the font.
-      s.addText(parseInlineMarkup(section.mentor_text), { x: 0.55, y, w: 9, h: PAGE_H - y - 0.6, fontFace: "Arial", fontSize: 15, color: DETAIL_DESC_COLOR, margin: 0, valign: "top", lineSpacingMultiple: 1.35 });
+      // Ashley: "make the text box wider to fit the margins of the
+      // slide" -- widening back to the standard PAGE_W-1.1 content
+      // margin used everywhere else in this deck, per her explicit
+      // instruction. Keeping the lineSpacingMultiple increase from
+      // RJ's earlier readability fix, since that's a separate
+      // improvement (line spacing, not line length) that still helps
+      // at the wider measure.
+      s.addText(parseInlineMarkup(section.mentor_text), { x: 0.55, y, w: PAGE_W - 1.1, h: PAGE_H - y - 0.6, fontFace: "Arial", fontSize: 15, color: DETAIL_DESC_COLOR, margin: 0, valign: "top", lineSpacingMultiple: 1.35 });
       footer(s, pageNum++, false);
     }
     // "Qualities of a Strong Literature Response" -- a numbered criteria
@@ -432,6 +450,13 @@ renderGroupedSections(
       addHeaderGradient(s);
       slideTitle(s, "Qualities of a Strong Literature Response", false);
       let y = 1.3;
+      // Ashley: "it is missing the text above the first item in the
+      // list: 'A strong Literature Response includes:'" -- that's the
+      // lead-in line directly before the numbered list in the source.
+      if (section.criteria_intro) {
+        s.addText(parseInlineMarkup(section.criteria_intro), { x: 0.55, y, w: PAGE_W - 1.1, h: 0.4, fontFace: "Arial", fontSize: 17, color: NAVY_INK, margin: 0, valign: "top" });
+        y += 0.55;
+      }
       section.criteria_list.forEach((item, i) => {
         // RJ: number wasn't aligned with its text -- the number box had
         // no valign set while the text box next to it did, so they used
@@ -500,36 +525,65 @@ renderGroupedSections(
   }
 );
 
-// ===== Slide: Literature Response =====
+// Blank chart renderer -- same "columns + blank fill-in rows" shape used
+// in generate_deck.js/generate_deck_project.js, added here for the first
+// time. Ashley: the outline doc "asks for a blank Literature Response
+// Planner chart... on the slide with the prompt... in a similar layout
+// to the 'Independent Reading' slide in Reading lessons" -- that's this
+// two-column text-left/chart-right layout, reused below for the
+// Literature Response slide.
+const TABLE_BORDER_BODY = "FFAB7B";
+function addChart(slide, chart, x, y, w, h) {
+  const nRows = (chart.rows && chart.rows.length) || 4;
+  const headerBorder = { type: "solid", color: PURPLE, pt: 1 };
+  const bodyBorder = { type: "solid", color: TABLE_BORDER_BODY, pt: 1 };
+  const headerRow = chart.columns.map(c => ({
+    text: c, options: { bold: true, color: WHITE, fill: { color: PURPLE }, align: "left", valign: "middle", fontFace: "Arial", fontSize: 13, border: headerBorder }
+  }));
+  const bodyRows = [];
+  for (let r = 0; r < nRows; r++) {
+    const zebra = r % 2 === 1;
+    const cells = chart.columns.map((_, ci) => {
+      const cell = (chart.rows && chart.rows[r]) ? chart.rows[r][ci] : "";
+      return { text: cell, options: { color: BODY, fontFace: "Arial", fontSize: 11.5, valign: "top", fill: { color: zebra ? PEACH : WHITE }, border: bodyBorder } };
+    });
+    bodyRows.push(cells);
+  }
+  slide.addTable([headerRow, ...bodyRows], {
+    x, y, w, h,
+    fontFace: "Arial", autoPage: false,
+    rowH: [0.4, ...bodyRows.map(() => (h - 0.4) / nRows)],
+  });
+}
+
+// ===== Slide: Literature Response -- two-column, matching Independent
+// Reading's layout: Teaching Point + prompt on the left, a blank
+// "Literature Response Planner" chart on the right. =====
 if (lesson.literature_response_prompt) {
   const s = pres.addSlide();
   addHeaderGradient(s);
   slideTitle(s, "Literature Response", false);
-  s.addText("Teaching Point", { x: 0.55, y: 1.3, w: PAGE_W - 1.1, h: 0.35, fontFace: "Arial", fontSize: 22, bold: true, color: CORAL, margin: 0 });
+  const leftW = 6.6;
+  s.addText("Teaching Point", { x: 0.55, y: 1.1, w: leftW, h: 0.35, fontFace: "Arial", fontSize: 20, bold: true, color: CORAL, margin: 0 });
   // Ashley: "template - font color is hex #110045" (comment on this
   // slide specifically). No matching slide type in the reference
   // template to cross-check against here (unlike the EQ/TP/LG Teaching
   // Point, where the template contradicted this same comment) -- applying
   // as stated since there's no counter-evidence for this instance.
-  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.7, w: PAGE_W - 1.1, h: 1.1, fontFace: "Arial", fontSize: 21.5, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
-  promptBox(s, lesson.literature_response_prompt, 0.55, 3.0, PAGE_W - 1.1, 1.4);
+  s.addText(parseInlineMarkup(lesson.teaching_point), { x: 0.55, y: 1.5, w: leftW, h: 1.1, fontFace: "Arial", fontSize: 16, color: DETAIL_DESC_COLOR, margin: 0, valign: "top" });
+  promptBox(s, lesson.literature_response_prompt, 0.55, 2.75, leftW, 1.6);
+  // Ashley: "'Knowledge Slide Template Outlines' doc asks for a blank
+  // Literature Response Planner chart be included on the slide with the
+  // prompt... The actual sample planner text is teacher-facing, so
+  // should not be included, but chart itself should be included." The
+  // old "Sample Literature Response Planner" slide (filled-in worked
+  // example, pulled from scripting) is gone -- replaced with this blank
+  // chart, same 2 sections as the Mentor Planner (Strong Claim / Evidence
+  // and Reasoning) but as actual empty fill-in rows, matching the
+  // established reference-vs-blank pattern used for every other planner
+  // this session.
+  addChart(s, { columns: ["Strong Claim", "Evidence and Reasoning"], rows: null }, 7.4, 1.1, PAGE_W - 7.95, PAGE_H - 1.7);
   footer(s, pageNum++, false);
-}
-
-// ===== Slide: Sample Literature Response Planner -- a worked example
-// tied to THIS lesson's own literature_response_prompt (distinct from
-// the generic Launch-section mentor_planner above, which is about a
-// different, earlier prompt used purely to teach the format). New for
-// this lesson -- 6b didn't reprint one.
-if (lesson.sample_planner) {
-  const groups = splitPlannerSections(lesson.sample_planner.sections, PAGE_W - 1.1, PAGE_H - 1.75);
-  groups.forEach((group, i) => {
-    const s = pres.addSlide();
-    addHeaderGradient(s);
-    slideTitle(s, `Sample Literature Response Planner${i > 0 ? " (continued)" : ""}`, false);
-    renderSimplePlanner(s, "", group, 0.55, 1.15, PAGE_W - 1.1, PAGE_H - 1.75);
-    footer(s, pageNum++, false);
-  });
 }
 
 // ===== Slide: Writers' Circle & Revise -- heading + Teaching Point only.
